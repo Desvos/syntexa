@@ -120,3 +120,50 @@ def mock_github_response():
         "title": "Test PR",
         "state": "open",
     }
+
+
+@pytest.fixture
+def auth_headers(client: TestClient) -> dict:
+    """Create a test user and return auth headers with a valid session token."""
+    import sys
+    sys.stderr.write("DEBUG: auth_headers fixture starting\n")
+    from syntexa.models.database import session_scope, create_all
+    from syntexa.models.entities import User
+    from syntexa.api.auth import hash_password, create_session
+
+    try:
+        sys.stderr.write("DEBUG: creating tables\n")
+        # Ensure tables exist
+        create_all()
+        sys.stderr.write("DEBUG: tables created\n")
+
+        with session_scope() as db:
+            sys.stderr.write("DEBUG: creating user\n")
+            # Create test user
+            user = User(
+                username="testuser",
+                password_hash=hash_password("testpassword123"),
+            )
+            db.add(user)
+            db.flush()  # Get the user ID
+            user_id = user.id
+            sys.stderr.write(f"DEBUG: user created with ID {user_id}\n")
+
+        # Create session token directly (bypass login API)
+        token = create_session(user_id, "testuser")
+        sys.stderr.write(f"DEBUG: token created {token[:20]}...\n")
+
+        # Verify token is in store
+        from syntexa.api.auth import get_session
+        session = get_session(token)
+        sys.stderr.write(f"DEBUG: session lookup: {session}\n")
+
+        return {"authorization": f"Bearer {token}"}
+    except Exception as e:
+        import sys
+        sys.stderr.write(f"auth_headers error: {e}\n")
+        import traceback
+        traceback.print_exc()
+
+    sys.stderr.write("DEBUG: returning empty dict\n")
+    return {}
