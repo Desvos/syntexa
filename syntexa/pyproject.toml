@@ -22,8 +22,9 @@ dependencies = [
     # Database
     "sqlalchemy>=2.0",
     "alembic>=1.12",
-    # Agent Framework
-    "autogen-agentchat>=0.8",
+    # Agent Framework — AG2 (ag2ai/ag2), swarm orchestration per research.md.
+    # 0.11 renamed the swarm API: run_swarm + ConversableAgent.register_handoffs.
+    "ag2>=0.11,<0.12",
     # Authentication & Security
     "bcrypt>=4.0",
     "python-dotenv>=1.0",

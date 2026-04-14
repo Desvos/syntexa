@@ -57,11 +57,13 @@ class SwarmEngine(Protocol):
 
 
 class AG2SwarmEngine:
-    """AG2 (ag2ai/ag2) implementation using SwarmAgent + initiate_swarm_chat.
+    """AG2 (ag2>=0.11) implementation using ConversableAgent + run_swarm.
 
-    Kept thin: wires roles → SwarmAgents, attaches handoffs based on
-    RoleConfig.handoff_targets, then runs the chat. All AG2 imports are
-    local so this module stays importable without the package installed.
+    The 0.11 rewrite of AG2 replaced SwarmAgent/initiate_swarm_chat with
+    ConversableAgent + run_swarm, and moved handoff primitives under
+    autogen.agentchat.group.*. All AG2 imports are local so the daemon
+    module remains importable without the package installed (useful for
+    the test suite, which uses a stub engine).
     """
 
     def __init__(
@@ -81,52 +83,62 @@ class AG2SwarmEngine:
     ) -> SwarmResult:
         try:
             from autogen import (  # type: ignore[import-not-found]
-                AFTER_WORK,
-                ON_CONDITION,
+                ConversableAgent,
+                run_swarm,
+            )
+            from autogen.agentchat.contrib.swarm_agent import (  # type: ignore[import-not-found]
                 AfterWorkOption,
-                SwarmAgent,
-                initiate_swarm_chat,
+            )
+            from autogen.agentchat.group.handoffs import (  # type: ignore[import-not-found]
+                OnCondition,
+            )
+            from autogen.agentchat.group.llm_condition import (  # type: ignore[import-not-found]
+                StringLLMCondition,
+            )
+            from autogen.agentchat.group.targets.transition_target import (  # type: ignore[import-not-found]
+                AgentTarget,
             )
         except ImportError as exc:
             raise RuntimeError(
-                "AG2 not installed. Install `ag2` (not `autogen-agentchat`) "
-                "to use AG2SwarmEngine."
+                "AG2 not installed. `pip install 'ag2>=0.11,<0.12'` to use "
+                "AG2SwarmEngine."
             ) from exc
 
+        # One agent per distinct role (a composition may list a role twice,
+        # e.g. two coders — AG2 only needs a single agent instance for that role).
         role_by_name: dict[str, RoleConfig] = {r.name: r for r in roles}
-        agents: dict[str, SwarmAgent] = {}
+        agents: dict[str, ConversableAgent] = {}
         for role in roles:
             if role.name in agents:
-                continue  # a role may appear twice in a composition (e.g. two coders)
-            agents[role.name] = SwarmAgent(
+                continue
+            agents[role.name] = ConversableAgent(
                 name=role.name,
                 system_message=role.system_prompt,
                 llm_config=self._llm_config,
             )
 
         for name, agent in agents.items():
-            targets = role_by_name[name].handoff_targets
             handoffs = [
-                ON_CONDITION(target=agents[t], condition=f"hand off to {t}")
-                for t in targets
+                OnCondition(
+                    target=AgentTarget(agent=agents[t]),
+                    condition=StringLLMCondition(prompt=f"Hand off to {t}."),
+                )
+                for t in role_by_name[name].handoff_targets
                 if t in agents
             ]
-            agent.register_hand_off(handoffs + [AFTER_WORK(AfterWorkOption.TERMINATE)])
+            if handoffs:
+                agent.register_handoffs(handoffs)
 
         initial_message = self._format_initial_message(context)
         first_agent = agents[roles[0].name]
 
         try:
-            chat_result, _ctx, _last_agent = initiate_swarm_chat(
+            response = run_swarm(
                 initial_agent=first_agent,
-                agents=list(agents.values()),
                 messages=initial_message,
+                agents=list(agents.values()),
                 max_rounds=max_rounds,
-                context_variables={
-                    "task_id": context.task_id,
-                    "branch": context.branch,
-                    "workspace_path": str(context.workspace_path),
-                },
+                after_work=AfterWorkOption.TERMINATE,
             )
         except Exception as exc:  # noqa: BLE001 — swarm failure is data, not a raise
             logger.exception("Swarm %s crashed", context.task_id)
@@ -136,7 +148,7 @@ class AG2SwarmEngine:
                 error=str(exc),
             )
 
-        return self._parse_result(chat_result, max_rounds)
+        return self._parse_result(response, max_rounds)
 
     @staticmethod
     def _format_initial_message(ctx: SwarmContext) -> str:
@@ -149,8 +161,10 @@ class AG2SwarmEngine:
         )
 
     @staticmethod
-    def _parse_result(chat_result, max_rounds: int) -> SwarmResult:
-        messages = getattr(chat_result, "chat_history", []) or []
+    def _parse_result(response, max_rounds: int) -> SwarmResult:
+        # RunResponseProtocol.messages is a property that resolves to the
+        # final chat history (list[dict]).
+        messages = list(getattr(response, "messages", []) or [])
         rounds_used = len(messages)
         log = "\n\n".join(
             f"[{m.get('name', '?')}] {m.get('content', '')}" for m in messages

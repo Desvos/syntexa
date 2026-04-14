@@ -9,10 +9,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-# Set test environment before importing app
-os.environ["ENVIRONMENT"] = "test"
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
-os.environ["SECRET_KEY"] = "test-secret-key-not-for-production"
+# Set test environment before importing app. Env vars must match the
+# SYNTEXA_ prefix used by syntexa.config.Settings so tests that rely on
+# get_settings() see the overridden values.
+os.environ["SYNTEXA_ENVIRONMENT"] = "test"
+os.environ["SYNTEXA_DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["SYNTEXA_SESSION_SECRET"] = "test-secret-key-not-for-production"
 
 
 @pytest.fixture(scope="session")
