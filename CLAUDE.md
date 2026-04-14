@@ -40,6 +40,26 @@ G = json_graph.node_link_graph(json.load(open('graphify-out/graph.json')))
 - **Key Bridges**: Feature Specification connects Adapter Pattern ↔ Technology Stack ↔ Constitution ↔ API
 - **Low cohesion communities**: Adapter Pattern (0.11), Technology Stack (0.13) - candidate for refactoring
 
+## Technology Stack
+
+### Package Manager (Frontend)
+
+**Always use `bun` and `bunx`** (never npm/npx):
+
+```bash
+# Install dependencies
+bun install
+
+# Run scripts
+bun run dev
+bun run build
+bun run test
+
+# Execute local packages
+bunx vite
+bunx eslint
+```
+
 ## spec-kit Workflow
 
 **NEVER use GSD** in this project. Use spec-kit commands only:
