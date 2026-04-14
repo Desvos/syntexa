@@ -19,6 +19,14 @@ human operator tags a task, and the swarm handles the rest — from
 analysis to pull request — while keeping the human in the loop via
 status updates and review gates.
 
+## Clarifications
+
+### Session 2026-04-14
+
+- Q: How should dashboard authentication work? → A: Multi-user with all users as superadmin
+- Q: How long should completed swarm logs be retained? → A: Configurable via environment variable (with a default retention period)
+- Q: Should ClickUp/GitHub integration use direct API calls or a plug-in/adapter architecture? → A: Plug-in/adapter architecture from the start, with ClickUp and GitHub as the first adapters
+
 ## User Scenarios & Testing
 
 ### Primary Scenario
@@ -69,6 +77,26 @@ and delivers a pull request,
 |                         | rounds                           | marked with timeout comment           |
 
 ## Functional Requirements
+
+### FR-13: Adapter Architecture
+
+**Priority**: Must
+**Description**: The system MUST use a plug-in/adapter architecture for
+external service integrations (project management and repository
+platforms). Each adapter implements a common interface so that adding a
+new provider requires only a new adapter, not changes to the core
+daemon.
+
+**Acceptance Criteria**:
+- [ ] Project management operations (list tasks, update status, add
+  comment) are accessed through a common adapter interface
+- [ ] Repository operations (create branch, commit, push, create PR)
+  are accessed through a common adapter interface
+- [ ] ClickUp adapter implements the project management interface
+- [ ] GitHub adapter implements the repository interface
+- [ ] Adding a new project management or repository provider requires
+  only implementing the corresponding adapter interface, with no
+  changes to the daemon core
 
 ### FR-1: Task Polling
 
@@ -209,6 +237,26 @@ each swarm is handling and its current agent.
 - [ ] Dashboard shows recently completed swarms (last 50) with
   outcome (success/failure) and PR link
 - [ ] Users can view the conversation log of a completed swarm
+- [ ] Completed swarm logs are retained for a configurable duration
+  (set via environment variable), after which they are automatically
+  purged
+
+### FR-12: User Management
+
+**Priority**: Must
+**Description**: The dashboard MUST support multiple user accounts, all
+with superadmin privileges. Any user can create additional user
+accounts.
+
+**Acceptance Criteria**:
+- [ ] Users can log in with username and password
+- [ ] Any logged-in user can create a new user account with username
+  and password
+- [ ] Any logged-in user can delete other user accounts (but not their
+  own)
+- [ ] All users have identical superadmin access to all dashboard
+  features
+- [ ] Sessions expire after a configurable period of inactivity
 
 ### FR-11: Concurrency Control
 
@@ -252,7 +300,10 @@ to a configurable maximum and queue excess tasks.
 |                   |                                          | branch, conversation_log,         |
 |                   |                                          | pr_url, started_at, completed_at  |
 | System Settings   | Global configuration for the platform     | poll_interval, max_concurrent,    |
-|                   |                                          | repo_path, base_branch            |
+|                   |                                          | repo_path, base_branch,           |
+|                   |                                          | log_retention_days               |
+| User              | A dashboard user with superadmin access   | id, username, password_hash,      |
+|                   |                                          | created_at, last_login_at         |
 
 ## Assumptions
 
@@ -263,9 +314,9 @@ to a configurable maximum and queue excess tasks.
 - The VPS has sufficient resources for the configured max concurrent
   swarms; each swarm primarily uses API calls, not heavy local compute
 - Users access the dashboard via a modern web browser on desktop
-- Authentication for the dashboard uses a simple shared-secret or
-  single-user approach suitable for a VPS deployment (not a
-  multi-tenant SaaS)
+- Authentication supports multiple users, all with superadmin privileges
+  (full read/write access to all dashboard features); no role-based
+  access control in the initial version
 - The daemon runs as a background service and restarts automatically
   on failure
 - Agent model preferences (which model each role uses) are configured
@@ -277,8 +328,10 @@ to a configurable maximum and queue excess tasks.
 - Mobile-native dashboard — web only
 - Automatic merging of pull requests (human review required)
 - Agent learning or memory across tasks (each swarm is stateless)
-- Integration with project management tools other than ClickUp
-- Integration with repository platforms other than GitHub
+- Integration with project management tools beyond ClickUp and
+  GitHub in this version (adapter architecture supports future additions)
+- Integration with repository platforms beyond GitHub in this version
+  (adapter architecture supports future additions)
 - Real-time push notifications (polling is sufficient for VPS use)
 - Agent billing or cost tracking per task
 
@@ -291,6 +344,7 @@ to a configurable maximum and queue excess tasks.
 | Test-Driven         | Every FR has measurable acceptance criteria; success criteria are        |
 |                     | quantified; swarm reliability is a tracked metric                        |
 | Modular Architecture| Agent roles are loosely coupled units; swarm compositions are            |
-|                     | configurable; dashboard, daemon, and swarm engine are separate concerns  |
+|                     | configurable; dashboard, daemon, and swarm engine are separate concerns; |
+|                     | external services use adapter architecture for extensibility           |
 | Security by Default | API keys stored in environment variables, not code; workspaces isolated   |
 |                     | per task; dashboard auth required; no secrets in logs or PR descriptions |
