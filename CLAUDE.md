@@ -45,15 +45,15 @@ G = json_graph.node_link_graph(json.load(open('graphify-out/graph.json')))
 **NEVER use GSD** in this project. Use spec-kit commands only:
 
 - `/specify` - Initialize or update a specification
-- `/spec-plan` - Plan a phase implementation
-- `/spec-impl` - Implement a planned phase
-- `/spec-analyze` - Analyze spec for issues
-- `/spec-checklist` - Create/update checklists
-- `/spec-tasks` - Sync tasks to issues
+- `/speckit-plan` - Plan a phase implementation
+- `/speckit-impl` - Implement a planned phase
+- `/speckit-analyze` - Analyze spec for issues
+- `/speckit-checklist` - Create/update checklists
+- `/speckit-tasks` - Sync tasks to issues
 
 ### Phase Planning Rules
 
 1. Phases are defined in `specs/001-agent-swarm-platform/`
 2. Each phase has tasks in `tasks.md`
-3. Use `/spec-plan <phase-number>` to plan next phase
-4. Use `/spec-impl` after planning to execute
+3. Use `/speckit-plan <phase-number>` to plan next phase
+4. Use `/speckit-impl` after planning to execute
