@@ -67,3 +67,71 @@ class AgentRoleRead(BaseModel):
 
 class AgentRoleList(BaseModel):
     roles: list[AgentRoleRead]
+
+
+# --- SwarmComposition ---------------------------------------------------
+
+# Task types allowed by the daemon classifier (see
+# syntexa.daemon.classifier.TASK_TYPE_KEYWORDS). Kept in sync here so the
+# API rejects unknown types at the edge rather than after a DB round-trip.
+VALID_TASK_TYPES: tuple[str, ...] = ("feature", "fix", "refactor", "security", "chore")
+
+
+class SwarmCompositionCreate(BaseModel):
+    task_type: str = Field(..., min_length=1, max_length=32)
+    roles: list[str] = Field(..., min_length=1)
+    max_rounds: int = Field(default=60, ge=1, le=500)
+
+    @field_validator("task_type")
+    @classmethod
+    def _task_type_is_known(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in VALID_TASK_TYPES:
+            raise ValueError(
+                f"task_type must be one of {VALID_TASK_TYPES}"
+            )
+        return v
+
+    @field_validator("roles")
+    @classmethod
+    def _roles_non_empty(cls, v: list[str]) -> list[str]:
+        # Order matters (first role = entry point), but duplicates are
+        # allowed — a composition can legitimately include two coders for
+        # parallel work (see DEFAULT_COMPOSITIONS "refactor").
+        cleaned = [r.strip() for r in v]
+        if any(not r for r in cleaned):
+            raise ValueError("role names cannot be empty")
+        return cleaned
+
+
+class SwarmCompositionUpdate(BaseModel):
+    """Partial update. `task_type` is not mutable — it's the natural key
+    that the daemon looks up by, and renaming would orphan defaults."""
+
+    roles: list[str] | None = Field(default=None, min_length=1)
+    max_rounds: int | None = Field(default=None, ge=1, le=500)
+
+    @field_validator("roles")
+    @classmethod
+    def _roles_non_empty(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return None
+        cleaned = [r.strip() for r in v]
+        if any(not r for r in cleaned):
+            raise ValueError("role names cannot be empty")
+        return cleaned
+
+
+class SwarmCompositionRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    task_type: str
+    roles: list[str]
+    max_rounds: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class SwarmCompositionList(BaseModel):
+    compositions: list[SwarmCompositionRead]

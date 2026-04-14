@@ -118,17 +118,17 @@ This task breakdown follows the **User Story Phase** organization from the spec:
 
 ### Tasks
 
-- [ ] T045 [P] [US3] Create Pydantic schemas for SwarmComposition in syntexa/api/schemas.py
-- [ ] T046 [P] [US3] Implement GET /api/v1/compositions endpoint in syntexa/api/routes/compositions.py
-- [ ] T047 [P] [US3] Implement POST /api/v1/compositions endpoint in syntexa/api/routes/compositions.py
-- [ ] T048 [P] [US3] Implement PUT /api/v1/compositions/{id} endpoint in syntexa/api/routes/compositions.py
-- [ ] T049 [P] [US3] Implement DELETE /api/v1/compositions/{id} endpoint in syntexa/api/routes/compositions.py
-- [ ] T050 [US3] Write API tests for composition CRUD endpoints
-- [ ] T051 [P] [US3] Build Swarm Compositions page in dashboard/src/pages/Compositions.jsx
-- [ ] T052 [P] [US3] Create drag-to-reorder role list component in dashboard/src/components/RoleOrder.jsx
-- [ ] T053 [US3] Create task type selector component in dashboard/src/components/TaskTypeSelect.jsx
-- [ ] T054 [US3] Build composition table with edit/delete actions in dashboard/src/components/CompositionsTable.jsx
-- [ ] T055 [US3] Write component tests for Compositions page
+- [x] T045 [P] [US3] Create Pydantic schemas for SwarmComposition in syntexa/api/schemas.py
+- [x] T046 [P] [US3] Implement GET /api/v1/compositions endpoint in syntexa/api/routes/compositions.py
+- [x] T047 [P] [US3] Implement POST /api/v1/compositions endpoint in syntexa/api/routes/compositions.py
+- [x] T048 [P] [US3] Implement PUT /api/v1/compositions/{id} endpoint in syntexa/api/routes/compositions.py
+- [x] T049 [P] [US3] Implement DELETE /api/v1/compositions/{id} endpoint in syntexa/api/routes/compositions.py
+- [x] T050 [US3] Write API tests for composition CRUD endpoints
+- [x] T051 [P] [US3] Build Swarm Compositions page in frontend/src/pages/Compositions.jsx
+- [x] T052 [P] [US3] Create drag-to-reorder role list component in frontend/src/components/RoleOrder.jsx
+- [x] T053 [US3] Create task type selector component in frontend/src/components/TaskTypeSelect.jsx
+- [x] T054 [US3] Build composition table with edit/delete actions in frontend/src/components/CompositionsTable.jsx
+- [x] T055 [US3] Write component tests for Compositions page
 
 ---
 

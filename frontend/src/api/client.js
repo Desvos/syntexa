@@ -32,4 +32,10 @@ export const api = {
     update: (id, payload) => request(`/roles/${id}`, { method: 'PUT', body: payload }),
     remove: (id) => request(`/roles/${id}`, { method: 'DELETE' }),
   },
+  compositions: {
+    list: () => request('/compositions'),
+    create: (payload) => request('/compositions', { method: 'POST', body: payload }),
+    update: (id, payload) => request(`/compositions/${id}`, { method: 'PUT', body: payload }),
+    remove: (id) => request(`/compositions/${id}`, { method: 'DELETE' }),
+  },
 };

@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from syntexa.api.routes import compositions as compositions_routes
 from syntexa.api.routes import roles as roles_routes
 from syntexa.config import get_settings
 from syntexa.models import init_engine
@@ -43,6 +44,7 @@ def create_app() -> FastAPI:
         return {"status": "ok", "version": app.version}
 
     app.include_router(roles_routes.router, prefix=API_PREFIX)
+    app.include_router(compositions_routes.router, prefix=API_PREFIX)
     return app
 
 
