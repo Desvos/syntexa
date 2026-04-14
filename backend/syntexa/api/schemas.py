@@ -7,8 +7,74 @@ handlers do the translation.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+# --- User ----------------------------------------------------------------
+
+class UserCreate(BaseModel):
+    """Create a new user."""
+
+    username: str = Field(..., min_length=3, max_length=64)
+    password: str = Field(..., min_length=8, max_length=128)
+
+    @field_validator("username")
+    @classmethod
+    def _username_is_slug(cls, v: str) -> str:
+        v = v.strip().lower()
+        if not v:
+            raise ValueError("username cannot be empty")
+        if not all(c.isalnum() or c in ("-", "_") for c in v):
+            raise ValueError("username must be alphanumeric with - or _")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def _password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("password must be at least 8 characters")
+        return v
+
+
+class UserRead(BaseModel):
+    """User data for API responses (excludes password_hash)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    created_at: datetime
+    last_login_at: datetime | None
+
+
+class UserList(BaseModel):
+    """List of users."""
+
+    users: list[UserRead]
+
+
+class LoginRequest(BaseModel):
+    """Login credentials."""
+
+    username: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=1)
+
+
+class LoginResponse(BaseModel):
+    """Successful login response with session token."""
+
+    access_token: str
+    token_type: str = "bearer"
+    user: UserRead
+
+
+class UserDeleteResponse(BaseModel):
+    """Response for user deletion."""
+
+    message: str
+    deleted_user_id: int
 
 
 class AgentRoleCreate(BaseModel):

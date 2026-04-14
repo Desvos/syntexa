@@ -1,49 +1,149 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, Link, useLocation } from 'react-router-dom';
 
 import CompositionsPage from './pages/Compositions.jsx';
+import LoginPage from './pages/Login.jsx';
 import MonitorPage from './pages/Monitor.jsx';
 import RolesPage from './pages/Roles.jsx';
 import SettingsPage from './pages/Settings.jsx';
+import UsersPage from './pages/Users.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
+import { isAuthenticated, authApi, setSessionExpiryHandler, clearSessionExpiryHandler } from './api/auth.js';
 import './styles/base.css';
+
+function Navigation() {
+  const location = useLocation();
+  const [authenticated, setAuthenticated] = useState(isAuthenticated());
+
+  useEffect(() => {
+    setAuthenticated(isAuthenticated());
+
+    // Set up session expiry handler
+    if (authenticated) {
+      setSessionExpiryHandler(() => {
+        setAuthenticated(false);
+        window.location.href = '/login';
+      });
+    }
+
+    return () => {
+      clearSessionExpiryHandler();
+    };
+  }, [authenticated]);
+
+  const handleLogout = async () => {
+    await authApi.logout();
+    setAuthenticated(false);
+  };
+
+  // Don't show nav on login page
+  if (location.pathname === '/login') {
+    return null;
+  }
+
+  // Don't show nav if not authenticated
+  if (!authenticated) {
+    return null;
+  }
+
+  const isActive = (path) => location.pathname === path;
+
+  return (
+    <nav className="main-nav">
+      <div className="nav-brand">Syntexa</div>
+      <ul className="nav-links">
+        <li>
+          <Link to="/roles" className={isActive('/roles') ? 'active' : ''}>
+            Agent Roles
+          </Link>
+        </li>
+        <li>
+          <Link to="/compositions" className={isActive('/compositions') ? 'active' : ''}>
+            Compositions
+          </Link>
+        </li>
+        <li>
+          <Link to="/monitor" className={isActive('/monitor') ? 'active' : ''}>
+            Monitor
+          </Link>
+        </li>
+        <li>
+          <Link to="/users" className={isActive('/users') ? 'active' : ''}>
+            Users
+          </Link>
+        </li>
+        <li>
+          <Link to="/settings" className={isActive('/settings') ? 'active' : ''}>
+            Settings
+          </Link>
+        </li>
+      </ul>
+      <div className="nav-actions">
+        <button className="btn btn-secondary" onClick={handleLogout}>
+          Logout
+        </button>
+      </div>
+    </nav>
+  );
+}
 
 function App() {
   return (
     <BrowserRouter>
       <div className="app-container">
-        <nav className="main-nav">
-          <div className="nav-brand">Syntexa</div>
-          <ul className="nav-links">
-            <li>
-              <a href="/roles" className={window.location.pathname === '/roles' ? 'active' : ''}>
-                Agent Roles
-              </a>
-            </li>
-            <li>
-              <a href="/compositions" className={window.location.pathname === '/compositions' ? 'active' : ''}>
-                Compositions
-              </a>
-            </li>
-            <li>
-              <a href="/monitor" className={window.location.pathname === '/monitor' ? 'active' : ''}>
-                Monitor
-              </a>
-            </li>
-            <li>
-              <a href="/settings" className={window.location.pathname === '/settings' ? 'active' : ''}>
-                Settings
-              </a>
-            </li>
-          </ul>
-        </nav>
+        <Navigation />
         <main className="main-content">
           <Routes>
-            <Route path="/" element={<Navigate to="/roles" replace />} />
-            <Route path="/roles" element={<RolesPage />} />
-            <Route path="/compositions" element={<CompositionsPage />} />
-            <Route path="/monitor" element={<MonitorPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Navigate to="/roles" replace />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/roles"
+              element={
+                <ProtectedRoute>
+                  <RolesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/compositions"
+              element={
+                <ProtectedRoute>
+                  <CompositionsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/monitor"
+              element={
+                <ProtectedRoute>
+                  <MonitorPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute>
+                  <UsersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
           </Routes>
         </main>
       </div>

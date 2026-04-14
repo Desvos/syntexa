@@ -1,19 +1,21 @@
 """FastAPI application entry point.
 
-Minimal shell for Phase 4. Auth middleware (Phase 7/US5) and other user
-story routers (US3–US5) plug in here as they land.
+Includes auth and user management (Phase 7/US5) with protected routes.
 """
 from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
+from syntexa.api.middleware import require_auth
+from syntexa.api.routes import auth as auth_routes
 from syntexa.api.routes import compositions as compositions_routes
 from syntexa.api.routes import roles as roles_routes
 from syntexa.api.routes import settings as settings_routes
 from syntexa.api.routes import swarms as swarms_routes
+from syntexa.api.routes import users as users_routes
 from syntexa.config import get_settings
 from syntexa.models import init_engine
 
@@ -45,10 +47,35 @@ def create_app() -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok", "version": app.version}
 
-    app.include_router(roles_routes.router, prefix=API_PREFIX)
-    app.include_router(compositions_routes.router, prefix=API_PREFIX)
-    app.include_router(settings_routes.router, prefix=API_PREFIX)
-    app.include_router(swarms_routes.router, prefix=API_PREFIX)
+    # Public routes (no auth required)
+    app.include_router(auth_routes.router, prefix=API_PREFIX)
+
+    # Protected routes (auth required)
+    app.include_router(
+        roles_routes.router,
+        prefix=API_PREFIX,
+        dependencies=[Depends(require_auth)],
+    )
+    app.include_router(
+        compositions_routes.router,
+        prefix=API_PREFIX,
+        dependencies=[Depends(require_auth)],
+    )
+    app.include_router(
+        settings_routes.router,
+        prefix=API_PREFIX,
+        dependencies=[Depends(require_auth)],
+    )
+    app.include_router(
+        swarms_routes.router,
+        prefix=API_PREFIX,
+        dependencies=[Depends(require_auth)],
+    )
+    app.include_router(
+        users_routes.router,
+        prefix=API_PREFIX,
+        dependencies=[Depends(require_auth)],
+    )
     return app
 
 

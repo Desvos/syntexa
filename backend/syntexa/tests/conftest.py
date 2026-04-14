@@ -35,6 +35,14 @@ def test_db_path() -> Generator[str, None, None]:
 @pytest.fixture(scope="function")
 def db_session(test_db_path: str) -> Generator[Session, None, None]:
     """Create a fresh database session for each test."""
+    # Import models first to register them with Base.metadata
+    from syntexa.models import (  # noqa: F401 - registers all models
+        AgentRole,
+        SwarmComposition,
+        SwarmInstance,
+        SystemSetting,
+        User,
+    )
     from syntexa.models.database import Base
 
     engine = create_engine(f"sqlite:///{test_db_path}")
@@ -52,22 +60,33 @@ def db_session(test_db_path: str) -> Generator[Session, None, None]:
 @pytest.fixture(scope="function")
 def client(test_db_path: str) -> Generator[TestClient, None, None]:
     """Create a FastAPI test client with initialized database."""
-    from syntexa.api.main import app
+    # Import models first to register them with Base.metadata
+    from syntexa.models import (  # noqa: F401 - registers all models
+        AgentRole,
+        SwarmComposition,
+        SwarmInstance,
+        SystemSetting,
+        User,
+    )
     from syntexa.config import get_settings
     from syntexa.models.database import Base, init_engine
 
-    # Clear settings cache
+    # Set the database URL before importing app so lifespan uses it
+    db_url = f"sqlite:///{test_db_path}"
+    os.environ["SYNTEXA_DATABASE_URL"] = db_url
+
+    # Clear settings cache so it picks up the new env var
     get_settings.cache_clear()
 
-    # Create engine and tables for this test
-    db_url = f"sqlite:///{test_db_path}"
+    # Initialize engine and create tables BEFORE importing app
     init_engine(db_url)
-
-    # Import here after engine is initialized
     from syntexa.models.database import get_engine
 
     engine = get_engine()
     Base.metadata.create_all(bind=engine)
+
+    # Import app AFTER engine is initialized and tables created
+    from syntexa.api.main import app
 
     with TestClient(app) as test_client:
         yield test_client

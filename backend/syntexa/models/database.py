@@ -71,6 +71,23 @@ def session_scope() -> Iterator[Session]:
         session.close()
 
 
+def get_db_session() -> Session:
+    """Get a database session for FastAPI dependency injection.
+
+    Yields a session that will be automatically committed/rolled back.
+    """
+    factory = get_session_factory()
+    session = factory()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
 def create_all() -> None:
     """Create all tables. Intended for tests and first-run bootstrap only;
     production schema changes go through Alembic migrations."""

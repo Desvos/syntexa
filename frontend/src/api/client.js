@@ -1,9 +1,21 @@
+import { getToken } from './auth.js';
+
 const BASE = '/api/v1';
 
 async function request(path, { method = 'GET', body } = {}) {
+  const token = getToken();
+  const headers = {};
+
+  if (body) {
+    headers['Content-Type'] = 'application/json';
+  }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
     body: body ? JSON.stringify(body) : undefined,
     credentials: 'include',
   });
