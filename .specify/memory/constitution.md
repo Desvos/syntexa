@@ -5,11 +5,10 @@ Sync Impact Report:
 - Added sections: Preamble, Principles (4), Governance, Amendments
 - Removed sections: N/A
 - Templates requiring updates:
-  - .specify/templates/plan-template.md — ⚠ pending (does not exist yet)
-  - .specify/templates/spec-template.md — ⚠ pending (does not exist yet)
-  - .specify/templates/tasks-template.md — ⚠ pending (does not exist yet)
+  - .specify/templates/plan-template.md — ✅ created
+  - .specify/templates/spec-template.md — ✅ created
+  - .specify/templates/tasks-template.md — ✅ created
 - Follow-up TODOs:
-  - Create .specify/templates/ directory with plan, spec, and task templates
   - Create README.md or project documentation referencing constitution principles
 -->
 
