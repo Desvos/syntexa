@@ -95,17 +95,17 @@ This task breakdown follows the **User Story Phase** organization from the spec:
 
 ### Tasks
 
-- [ ] T034 [P] [US2] Create Pydantic schemas for AgentRole in syntexa/api/schemas.py
-- [ ] T035 [P] [US2] Implement GET /api/v1/roles endpoint in syntexa/api/routes/roles.py
-- [ ] T036 [P] [US2] Implement POST /api/v1/roles endpoint in syntexa/api/routes/roles.py
-- [ ] T037 [P] [US2] Implement PUT /api/v1/roles/{id} endpoint in syntexa/api/routes/roles.py
-- [ ] T038 [P] [US2] Implement DELETE /api/v1/roles/{id} endpoint in syntexa/api/routes/roles.py
-- [ ] T039 [US2] Write API tests for role CRUD endpoints
-- [ ] T040 [P] [US2] Build Agent Roles management page in dashboard/src/pages/Roles.jsx
-- [ ] T041 [P] [US2] Create role editor component with system prompt textarea in dashboard/src/components/RoleEditor.jsx
-- [ ] T042 [US2] Create handoff targets multi-select component in dashboard/src/components/HandoffTargets.jsx
-- [ ] T043 [US2] Build role table with CRUD actions in dashboard/src/components/RolesTable.jsx
-- [ ] T044 [US2] Write component tests for Roles page
+- [x] T034 [P] [US2] Create Pydantic schemas for AgentRole in syntexa/api/schemas.py
+- [x] T035 [P] [US2] Implement GET /api/v1/roles endpoint in syntexa/api/routes/roles.py
+- [x] T036 [P] [US2] Implement POST /api/v1/roles endpoint in syntexa/api/routes/roles.py
+- [x] T037 [P] [US2] Implement PUT /api/v1/roles/{id} endpoint in syntexa/api/routes/roles.py
+- [x] T038 [P] [US2] Implement DELETE /api/v1/roles/{id} endpoint in syntexa/api/routes/roles.py
+- [x] T039 [US2] Write API tests for role CRUD endpoints
+- [x] T040 [P] [US2] Build Agent Roles management page in dashboard/src/pages/Roles.jsx
+- [x] T041 [P] [US2] Create role editor component with system prompt textarea in dashboard/src/components/RoleEditor.jsx
+- [x] T042 [US2] Create handoff targets multi-select component in dashboard/src/components/HandoffTargets.jsx
+- [x] T043 [US2] Build role table with CRUD actions in dashboard/src/components/RolesTable.jsx
+- [x] T044 [US2] Write component tests for Roles page
 
 ---
 
@@ -194,8 +194,8 @@ This task breakdown follows the **User Story Phase** organization from the spec:
 
 ### Tasks
 
-- [ ] T088 [P] Create main FastAPI application entry point in syntexa/api/main.py
-- [ ] T089 [P] Set up React dashboard with Vite in dashboard/
+- [x] T088 [P] Create main FastAPI application entry point in syntexa/api/main.py (pulled forward to Phase 4)
+- [x] T089 [P] Set up React dashboard with Vite in dashboard/ (pulled forward to Phase 4)
 - [ ] T090 [P] Create API client layer for dashboard in dashboard/src/api/client.js
 - [ ] T091 [P] Create dashboard layout shell with navigation in dashboard/src/components/Layout.jsx
 - [ ] T092 Implement dashboard routing with React Router in dashboard/src/App.jsx
