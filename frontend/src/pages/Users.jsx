@@ -22,7 +22,7 @@ export default function UsersPage() {
       const data = await usersApi.list();
       setUsers(data.users || []);
     } catch (err) {
-      setError(err.message || 'Failed to load users');
+      setError('Failed to load users');
     } finally {
       setLoading(false);
     }
@@ -68,7 +68,7 @@ export default function UsersPage() {
         <form className="create-form" onSubmit={handleCreate}>
           <div className="form-row">
             <div className="form-group">
-              <label htmlFor="new-username">Username</label>
+              <label htmlFor="new-username">Username (New)</label>
               <input
                 id="new-username"
                 type="text"
@@ -82,7 +82,7 @@ export default function UsersPage() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="new-password">Password</label>
+              <label htmlFor="new-password">Password (New)</label>
               <input
                 id="new-password"
                 type="password"

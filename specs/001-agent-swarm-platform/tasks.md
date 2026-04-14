@@ -29,12 +29,12 @@ This task breakdown follows the **User Story Phase** organization from the spec:
 
 ### Tasks
 
-- [ ] T001 Create Python project structure with pyproject.toml in syntexa/
-- [ ] T002 Create directory layout: syntexa/{daemon,adapters,models,api,config}
-- [ ] T003 Set up pytest configuration and test directory structure
-- [ ] T004 Add AG2 (autogen-agentchat>=0.8) dependency to pyproject.toml
-- [ ] T005 Add FastAPI, Uvicorn, SQLAlchemy dependencies to pyproject.toml
-- [ ] T006 Add bcrypt, python-dotenv, requests, httpx dependencies to pyproject.toml
+- [X] T001 Create Python project structure with pyproject.toml in backend/
+- [X] T002 Create directory layout: syntexa/{daemon,adapters,models,api,config}
+- [X] T003 Set up pytest configuration and test directory structure
+- [X] T004 Add AG2 (autogen-agentchat>=0.8) dependency to pyproject.toml
+- [X] T005 Add FastAPI, Uvicorn, SQLAlchemy dependencies to pyproject.toml
+- [X] T006 Add bcrypt, python-dotenv, requests, httpx dependencies to pyproject.toml
 
 ---
 
@@ -169,22 +169,22 @@ This task breakdown follows the **User Story Phase** organization from the spec:
 
 ### Tasks
 
-- [ ] T072 [P] [US5] Implement bcrypt password hashing utility in syntexa/api/auth.py
-- [ ] T073 [P] [US5] Implement session token generation and validation in syntexa/api/auth.py
-- [ ] T074 [P] [US5] Implement POST /api/v1/auth/login endpoint in syntexa/api/routes/auth.py
-- [ ] T075 [P] [US5] Implement POST /api/v1/auth/logout endpoint in syntexa/api/routes/auth.py
-- [ ] T076 [P] [US5] Implement GET /api/v1/users endpoint in syntexa/api/routes/users.py
-- [ ] T077 [P] [US5] Implement POST /api/v1/users endpoint in syntexa/api/routes/users.py
-- [ ] T078 [P] [US5] Implement DELETE /api/v1/users/{id} endpoint with self-delete protection in syntexa/api/routes/users.py
-- [ ] T079 [US5] Implement authentication middleware for protected endpoints in syntexa/api/middleware.py
-- [ ] T080 [US5] Write API tests for auth and user management endpoints
-- [ ] T081 [P] [US5] Build Login page in dashboard/src/pages/Login.jsx
-- [ ] T082 [P] [US5] Build User Management page in dashboard/src/pages/Users.jsx
-- [ ] T083 [US5] Create login form component in dashboard/src/components/LoginForm.jsx
-- [ ] T084 [US5] Create user table with create/delete actions in dashboard/src/components/UsersTable.jsx
-- [ ] T085 [US5] Create protected route wrapper component in dashboard/src/components/ProtectedRoute.jsx
-- [ ] T086 [US5] Implement session expiry handling in dashboard/src/utils/session.js
-- [ ] T087 [US5] Write component tests for Login and Users pages
+- [X] T072 [P] [US5] Implement bcrypt password hashing utility in syntexa/api/auth.py
+- [X] T073 [P] [US5] Implement session token generation and validation in syntexa/api/auth.py
+- [X] T074 [P] [US5] Implement POST /api/v1/auth/login endpoint in syntexa/api/routes/auth.py
+- [X] T075 [P] [US5] Implement POST /api/v1/auth/logout endpoint in syntexa/api/routes/auth.py
+- [X] T076 [P] [US5] Implement GET /api/v1/users endpoint in syntexa/api/routes/users.py
+- [X] T077 [P] [US5] Implement POST /api/v1/users endpoint in syntexa/api/routes/users.py
+- [X] T078 [P] [US5] Implement DELETE /api/v1/users/{id} endpoint with self-delete protection in syntexa/api/routes/users.py
+- [X] T079 [US5] Implement authentication middleware for protected endpoints in syntexa/api/middleware.py
+- [X] T080 [US5] Write API tests for auth and user management endpoints
+- [X] T081 [P] [US5] Build Login page in dashboard/src/pages/Login.jsx
+- [X] T082 [P] [US5] Build User Management page in dashboard/src/pages/Users.jsx
+- [X] T083 [US5] Create login form component in dashboard/src/components/LoginForm.jsx
+- [X] T084 [US5] Create user table with create/delete actions in dashboard/src/components/UsersTable.jsx
+- [X] T085 [US5] Create protected route wrapper component in dashboard/src/components/ProtectedRoute.jsx
+- [X] T086 [US5] Implement session expiry handling in dashboard/src/api/auth.js
+- [X] T087 [US5] Write component tests for Login and Users pages
 
 ---
 
@@ -196,17 +196,17 @@ This task breakdown follows the **User Story Phase** organization from the spec:
 
 - [x] T088 [P] Create main FastAPI application entry point in syntexa/api/main.py (pulled forward to Phase 4)
 - [x] T089 [P] Set up React dashboard with Vite in dashboard/ (pulled forward to Phase 4)
-- [ ] T090 [P] Create API client layer for dashboard in dashboard/src/api/client.js
-- [ ] T091 [P] Create dashboard layout shell with navigation in dashboard/src/components/Layout.jsx
-- [ ] T092 Implement dashboard routing with React Router in dashboard/src/App.jsx
-- [ ] T093 Add responsive CSS/styling for desktop browsers in dashboard/src/styles/
-- [ ] T094 Implement daemon-to-database integration for SwarmInstance tracking
-- [ ] T095 Add error handling and logging throughout daemon and API
-- [ ] T096 Write end-to-end test: login → create role → create composition → view swarm status
-- [ ] T097 Write deployment documentation in docs/deployment.md
-- [ ] T098 Create environment variable template in .env.example
-- [ ] T099 Add API documentation generation with FastAPI auto-docs
-- [ ] T100 Final integration testing and bug fixes
+- [X] T090 [P] Create API client layer for dashboard in dashboard/src/api/client.js
+- [X] T091 [P] Create dashboard layout shell with navigation in dashboard/src/main.jsx
+- [X] T092 Implement dashboard routing with React Router in dashboard/src/main.jsx
+- [X] T093 Add responsive CSS/styling for desktop browsers in dashboard/src/styles/
+- [X] T094 Implement daemon-to-database integration for SwarmInstance tracking
+- [X] T095 Add error handling and logging throughout daemon and API
+- [X] T096 Write end-to-end test: login → create role → create composition → view swarm status
+- [X] T097 Write deployment documentation in docs/deployment.md
+- [X] T098 Create environment variable template in .env.example
+- [X] T099 Add API documentation generation with FastAPI auto-docs
+- [X] T100 Final integration testing and bug fixes
 
 ---
 
