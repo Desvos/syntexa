@@ -1,0 +1,27 @@
+[Unit]
+Description=Syntexa Agent Swarm Daemon
+Documentation=https://github.com/antoniodevivo/syntexa
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=syntexa
+Group=syntexa
+WorkingDirectory=/opt/syntexa
+EnvironmentFile=/etc/syntexa/syntexa.env
+ExecStart=/opt/syntexa/.venv/bin/syntexa-daemon
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/syntexa /var/lib/syntexa
+
+[Install]
+WantedBy=multi-user.target

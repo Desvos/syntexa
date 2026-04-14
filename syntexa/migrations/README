@@ -1,0 +1,9 @@
+Alembic migrations for Syntexa.
+
+Generate a new revision from model changes:
+    alembic -c syntexa/alembic.ini revision --autogenerate -m "describe change"
+
+Apply to the configured database:
+    alembic -c syntexa/alembic.ini upgrade head
+
+The database URL is resolved from SYNTEXA_DATABASE_URL (see syntexa/config/settings.py).

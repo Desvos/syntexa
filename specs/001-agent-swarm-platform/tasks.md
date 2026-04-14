@@ -44,13 +44,13 @@ This task breakdown follows the **User Story Phase** organization from the spec:
 
 ### Tasks
 
-- [ ] T007 [P] Create SQLite database connection module in syntexa/models/database.py
-- [ ] T008 [P] Create SQLAlchemy models per data-model.md: User, AgentRole, SwarmComposition, SwarmInstance, SystemSettings
-- [ ] T009 Create database migration setup (Alembic configuration)
-- [ ] T010 [P] Define ProjectManagementAdapter abstract base class in syntexa/adapters/base.py
-- [ ] T011 [P] Define RepositoryAdapter abstract base class in syntexa/adapters/base.py
-- [ ] T012 [P] Implement config module for env var loading with validation in syntexa/config/settings.py
-- [ ] T013 Create systemd service file template in deploy/syntexa.service
+- [x] T007 [P] Create SQLite database connection module in syntexa/models/database.py
+- [x] T008 [P] Create SQLAlchemy models per data-model.md: User, AgentRole, SwarmComposition, SwarmInstance, SystemSettings
+- [x] T009 Create database migration setup (Alembic configuration)
+- [x] T010 [P] Define ProjectManagementAdapter abstract base class in syntexa/adapters/base.py
+- [x] T011 [P] Define RepositoryAdapter abstract base class in syntexa/adapters/base.py
+- [x] T012 [P] Implement config module for env var loading with validation in syntexa/config/settings.py
+- [x] T013 Create systemd service file template in deploy/syntexa.service
 
 ---
 
