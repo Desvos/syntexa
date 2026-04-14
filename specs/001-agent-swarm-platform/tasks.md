@@ -63,26 +63,26 @@ This task breakdown follows the **User Story Phase** organization from the spec:
 
 ### Tasks
 
-- [ ] T014 [P] [US1] Implement ClickUp adapter list_tasks method in syntexa/adapters/clickup.py
-- [ ] T015 [P] [US1] Implement ClickUp adapter update_status method in syntexa/adapters/clickup.py
-- [ ] T016 [P] [US1] Implement ClickUp adapter add_comment method in syntexa/adapters/clickup.py
-- [ ] T017 [P] [US1] Implement GitHub adapter create_branch method in syntexa/adapters/github.py
-- [ ] T018 [P] [US1] Implement GitHub adapter commit method in syntexa/adapters/github.py
-- [ ] T019 [P] [US1] Implement GitHub adapter push method in syntexa/adapters/github.py
-- [ ] T020 [P] [US1] Implement GitHub adapter create_pr method in syntexa/adapters/github.py
-- [ ] T021 [P] [US1] Implement task polling loop in syntexa/daemon/poller.py
-- [ ] T022 [US1] Implement task type detection logic (feature/fix/refactor/security/chore) in syntexa/daemon/classifier.py
-- [ ] T023 [US1] Create default agent roles (planner, coder, tester, reviewer) in syntexa/daemon/roles.py
-- [ ] T024 [US1] Create default swarm compositions for each task type in syntexa/daemon/compositions.py
-- [ ] T025 [US1] Implement AG2 swarm assembly with handoff routing in syntexa/daemon/swarm.py
-- [ ] T026 [US1] Implement isolated workspace (branch) creation per task in syntexa/daemon/workspace.py
-- [ ] T027 [US1] Implement PR delivery pipeline in syntexa/daemon/delivery.py
-- [ ] T028 [US1] Implement concurrency control with ThreadPoolExecutor in syntexa/daemon/executor.py
-- [ ] T029 [US1] Integrate daemon components into main loop in syntexa/daemon/main.py
-- [ ] T030 [US1] Write unit tests for ClickUp adapter with mocked API responses
-- [ ] T031 [US1] Write unit tests for GitHub adapter with mocked API responses
-- [ ] T032 [US1] Write integration test for full daemon loop (tag → swarm → PR)
-- [ ] T033 [US1] Write concurrency test to verify max_concurrent enforcement
+- [x] T014 [P] [US1] Implement ClickUp adapter list_tasks method in syntexa/adapters/clickup.py
+- [x] T015 [P] [US1] Implement ClickUp adapter update_status method in syntexa/adapters/clickup.py
+- [x] T016 [P] [US1] Implement ClickUp adapter add_comment method in syntexa/adapters/clickup.py
+- [x] T017 [P] [US1] Implement GitHub adapter create_branch method in syntexa/adapters/github.py
+- [x] T018 [P] [US1] Implement GitHub adapter commit method in syntexa/adapters/github.py
+- [x] T019 [P] [US1] Implement GitHub adapter push method in syntexa/adapters/github.py
+- [x] T020 [P] [US1] Implement GitHub adapter create_pr method in syntexa/adapters/github.py
+- [x] T021 [P] [US1] Implement task polling loop in syntexa/daemon/poller.py
+- [x] T022 [US1] Implement task type detection logic (feature/fix/refactor/security/chore) in syntexa/daemon/classifier.py
+- [x] T023 [US1] Create default agent roles (planner, coder, tester, reviewer) in syntexa/daemon/roles.py
+- [x] T024 [US1] Create default swarm compositions for each task type in syntexa/daemon/compositions.py
+- [x] T025 [US1] Implement AG2 swarm assembly with handoff routing in syntexa/daemon/swarm.py
+- [x] T026 [US1] Implement isolated workspace (branch) creation per task in syntexa/daemon/workspace.py
+- [x] T027 [US1] Implement PR delivery pipeline in syntexa/daemon/delivery.py
+- [x] T028 [US1] Implement concurrency control with ThreadPoolExecutor in syntexa/daemon/executor.py
+- [x] T029 [US1] Integrate daemon components into main loop in syntexa/daemon/main.py
+- [x] T030 [US1] Write unit tests for ClickUp adapter with mocked API responses
+- [x] T031 [US1] Write unit tests for GitHub adapter with mocked API responses
+- [x] T032 [US1] Write integration test for full daemon loop (tag → swarm → PR)
+- [x] T033 [US1] Write concurrency test to verify max_concurrent enforcement
 
 ---
 
