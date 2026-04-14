@@ -141,22 +141,22 @@ This task breakdown follows the **User Story Phase** organization from the spec:
 
 ### Tasks
 
-- [ ] T056 [P] [US4] Implement GET /api/v1/settings endpoint in syntexa/api/routes/settings.py
-- [ ] T057 [P] [US4] Implement PATCH /api/v1/settings endpoint with live-reload support in syntexa/api/routes/settings.py
-- [ ] T058 [P] [US4] Implement GET /api/v1/settings/status endpoint for connection health in syntexa/api/routes/settings.py
-- [ ] T059 [US4] Implement settings change notification to daemon via file watcher or signal
-- [ ] T060 [P] [US4] Implement GET /api/v1/swarms/active endpoint in syntexa/api/routes/swarms.py
-- [ ] T061 [P] [US4] Implement GET /api/v1/swarms/completed endpoint with limit parameter in syntexa/api/routes/swarms.py
-- [ ] T062 [P] [US4] Implement GET /api/v1/swarms/{id}/log endpoint in syntexa/api/routes/swarms.py
-- [ ] T063 [US4] Implement log retention cleanup as background task in syntexa/daemon/cleanup.py
-- [ ] T064 [US4] Write API tests for settings and monitoring endpoints
-- [ ] T065 [P] [US4] Build System Settings page in dashboard/src/pages/Settings.jsx
-- [ ] T066 [P] [US4] Build Swarm Monitor page in dashboard/src/pages/Monitor.jsx
-- [ ] T067 [US4] Create active swarms list component with real-time polling in dashboard/src/components/ActiveSwarms.jsx
-- [ ] T068 [US4] Create completed swarms history component in dashboard/src/components/CompletedSwarms.jsx
-- [ ] T069 [US4] Create conversation log viewer component in dashboard/src/components/LogViewer.jsx
-- [ ] T070 [US4] Create connection status indicator component in dashboard/src/components/ConnectionStatus.jsx
-- [ ] T071 [US4] Write component tests for Settings and Monitor pages
+- [x] T056 [P] [US4] Implement GET /api/v1/settings endpoint in syntexa/api/routes/settings.py
+- [x] T057 [P] [US4] Implement PATCH /api/v1/settings endpoint with live-reload support in syntexa/api/routes/settings.py
+- [x] T058 [P] [US4] Implement GET /api/v1/settings/status endpoint for connection health in syntexa/api/routes/settings.py
+- [x] T059 [US4] Implement settings change notification to daemon via file watcher or signal
+- [x] T060 [P] [US4] Implement GET /api/v1/swarms/active endpoint in syntexa/api/routes/swarms.py
+- [x] T061 [P] [US4] Implement GET /api/v1/swarms/completed endpoint with limit parameter in syntexa/api/routes/swarms.py
+- [x] T062 [P] [US4] Implement GET /api/v1/swarms/{id}/log endpoint in syntexa/api/routes/swarms.py
+- [x] T063 [US4] Implement log retention cleanup as background task in syntexa/daemon/cleanup.py
+- [x] T064 [US4] Write API tests for settings and monitoring endpoints
+- [x] T065 [P] [US4] Build System Settings page in frontend/src/pages/Settings.jsx
+- [x] T066 [P] [US4] Build Swarm Monitor page in frontend/src/pages/Monitor.jsx
+- [x] T067 [US4] Create active swarms list component with real-time polling in frontend/src/components/ActiveSwarms.jsx
+- [x] T068 [US4] Create completed swarms history component in frontend/src/components/CompletedSwarms.jsx
+- [x] T069 [US4] Create conversation log viewer component in frontend/src/components/LogViewer.jsx
+- [x] T070 [US4] Create connection status indicator component in frontend/src/components/ConnectionStatus.jsx
+- [x] T071 [US4] Write component tests for Settings and Monitor pages
 
 ---
 

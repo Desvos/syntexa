@@ -23,9 +23,13 @@ def test_db_path() -> Generator[str, None, None]:
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         path = f.name
     yield path
-    # Cleanup after tests
-    if os.path.exists(path):
-        os.unlink(path)
+    # Cleanup after tests - on Windows, the file might still be open
+    # so we just try to delete it but don't fail if we can't
+    try:
+        if os.path.exists(path):
+            os.unlink(path)
+    except (OSError, PermissionError):
+        pass  # File may still be open by another process
 
 
 @pytest.fixture(scope="function")
@@ -43,16 +47,33 @@ def db_session(test_db_path: str) -> Generator[Session, None, None]:
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture(scope="function")
-def client() -> Generator[TestClient, None, None]:
-    """Create a FastAPI test client."""
+def client(test_db_path: str) -> Generator[TestClient, None, None]:
+    """Create a FastAPI test client with initialized database."""
     from syntexa.api.main import app
+    from syntexa.config import get_settings
+    from syntexa.models.database import Base, init_engine
+
+    # Clear settings cache
+    get_settings.cache_clear()
+
+    # Create engine and tables for this test
+    db_url = f"sqlite:///{test_db_path}"
+    init_engine(db_url)
+
+    # Import here after engine is initialized
+    from syntexa.models.database import get_engine
+
+    engine = get_engine()
+    Base.metadata.create_all(bind=engine)
 
     with TestClient(app) as test_client:
         yield test_client
+
+    # Cleanup tables
+    Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture

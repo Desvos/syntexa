@@ -38,4 +38,14 @@ export const api = {
     update: (id, payload) => request(`/compositions/${id}`, { method: 'PUT', body: payload }),
     remove: (id) => request(`/compositions/${id}`, { method: 'DELETE' }),
   },
+  settings: {
+    get: () => request('/settings'),
+    update: (payload) => request('/settings', { method: 'PATCH', body: payload }),
+    status: () => request('/settings/status'),
+  },
+  swarms: {
+    active: () => request('/swarms/active'),
+    completed: (limit = 50) => request(`/swarms/completed?limit=${limit}`),
+    log: (id) => request(`/swarms/${id}/log`),
+  },
 };

@@ -135,3 +135,111 @@ class SwarmCompositionRead(BaseModel):
 
 class SwarmCompositionList(BaseModel):
     compositions: list[SwarmCompositionRead]
+
+
+# --- SystemSettings ------------------------------------------------------
+
+# System settings that can be updated at runtime
+RUNTIME_SETTING_KEYS: set[str] = {
+    "poll_interval",
+    "max_concurrent",
+    "log_retention_days",
+    "agent_trigger_tag",
+    "base_branch",
+}
+
+# Sensitive keys that should be masked in responses
+SENSITIVE_SETTING_KEYS: set[str] = {
+    "clickup_api_key",
+    "github_token",
+}
+
+
+class SystemSettingItem(BaseModel):
+    """A single setting key-value pair."""
+
+    key: str
+    value: Any
+    updated_at: datetime
+
+
+class SystemSettingUpdate(BaseModel):
+    """Partial update for system settings.
+
+    Only runtime-tunable settings can be updated.
+    """
+
+    poll_interval: int | None = Field(default=None, ge=10)
+    max_concurrent: int | None = Field(default=None, ge=1)
+    log_retention_days: int | None = Field(default=None, ge=1)
+    agent_trigger_tag: str | None = Field(default=None, min_length=1)
+    base_branch: str | None = Field(default=None, min_length=1)
+
+    @field_validator("agent_trigger_tag", "base_branch")
+    @classmethod
+    def _strip_string(cls, v: str | None) -> str | None:
+        if v is not None:
+            return v.strip()
+        return v
+
+
+class SystemSettingsRead(BaseModel):
+    """Full settings response including all tunable values."""
+
+    poll_interval: int
+    max_concurrent: int
+    log_retention_days: int
+    agent_trigger_tag: str
+    base_branch: str
+    repo_path: str
+
+
+class ConnectionStatus(BaseModel):
+    """Connection health status for external services."""
+
+    service: str  # "clickup" or "github"
+    status: str  # "connected", "error", "unconfigured"
+    message: str | None = None
+
+
+class SettingsStatusResponse(BaseModel):
+    """Response for /settings/status endpoint."""
+
+    connections: list[ConnectionStatus]
+
+
+# --- SwarmInstance (Monitoring) ------------------------------------------
+
+class SwarmInstanceRead(BaseModel):
+    """A swarm instance for monitoring."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    task_id: str
+    task_name: str
+    task_type: str
+    branch: str
+    status: str  # running / completed / failed / timeout
+    active_agent: str | None
+    pr_url: str | None
+    started_at: datetime
+    completed_at: datetime | None
+
+
+class SwarmInstanceList(BaseModel):
+    """List of swarm instances."""
+
+    swarms: list[SwarmInstanceRead]
+
+
+class SwarmLogResponse(BaseModel):
+    """Conversation log for a completed swarm."""
+
+    task_id: str
+    task_name: str
+    status: str
+    log: str | None
+    pr_url: str | None
+    started_at: datetime
+    completed_at: datetime | None
