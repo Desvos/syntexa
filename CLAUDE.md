@@ -23,6 +23,7 @@ This project has a graphify knowledge graph at graphify-out/.
    - This updates graph.json without LLM re-extraction (AST-only, fast)
 
 ### Query Examples:
+
 ```python
 # Find connections between two concepts
 python -c "
@@ -34,6 +35,25 @@ G = json_graph.node_link_graph(json.load(open('graphify-out/graph.json')))
 ```
 
 ### Stats (129 nodes, 199 edges, 10 communities):
+
 - **God Nodes**: Feature Specification (32 edges), LLM Provider Settings (18 edges)
 - **Key Bridges**: Feature Specification connects Adapter Pattern ↔ Technology Stack ↔ Constitution ↔ API
 - **Low cohesion communities**: Adapter Pattern (0.11), Technology Stack (0.13) - candidate for refactoring
+
+## spec-kit Workflow
+
+**NEVER use GSD** in this project. Use spec-kit commands only:
+
+- `/specify` - Initialize or update a specification
+- `/spec-plan` - Plan a phase implementation
+- `/spec-impl` - Implement a planned phase
+- `/spec-analyze` - Analyze spec for issues
+- `/spec-checklist` - Create/update checklists
+- `/spec-tasks` - Sync tasks to issues
+
+### Phase Planning Rules
+
+1. Phases are defined in `specs/001-agent-swarm-platform/`
+2. Each phase has tasks in `tasks.md`
+3. Use `/spec-plan <phase-number>` to plan next phase
+4. Use `/spec-impl` after planning to execute
