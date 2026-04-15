@@ -66,7 +66,7 @@ bunx eslint
 
 - `/specify` - Initialize or update a specification
 - `/speckit-plan` - Plan a phase implementation
-- `/speckit-impl` - Implement a planned phase
+- `/speckit-implement` - Implement a planned phase
 - `/speckit-analyze` - Analyze spec for issues
 - `/speckit-checklist` - Create/update checklists
 - `/speckit-tasks` - Sync tasks to issues
