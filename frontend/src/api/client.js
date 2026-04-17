@@ -1,6 +1,13 @@
-import { getToken } from './auth.js';
+import { getToken, removeToken } from './auth.js';
 
 const BASE = '/api/v1';
+
+// Event emitter for auth errors (401 handling)
+let authErrorHandler = null;
+
+export function setAuthErrorHandler(handler) {
+  authErrorHandler = handler;
+}
 
 async function request(path, { method = 'GET', body } = {}) {
   const token = getToken();
@@ -19,6 +26,16 @@ async function request(path, { method = 'GET', body } = {}) {
     body: body ? JSON.stringify(body) : undefined,
     credentials: 'include',
   });
+
+  // Handle 401 Unauthorized - token invalid or expired
+  if (res.status === 401) {
+    removeToken();
+    // Force full page redirect to clear React state and go to login
+    window.location.replace('/login');
+    // Return a pending promise that never resolves (page will reload)
+    return new Promise(() => {});
+  }
+
   if (res.status === 204) return null;
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;

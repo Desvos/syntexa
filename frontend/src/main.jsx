@@ -10,6 +10,7 @@ import SettingsPage from './pages/Settings.jsx';
 import UsersPage from './pages/Users.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { isAuthenticated, authApi, setSessionExpiryHandler, clearSessionExpiryHandler } from './api/auth.js';
+import { setAuthErrorHandler } from './api/client.js';
 import './styles/base.css';
 
 function Navigation() {
@@ -26,6 +27,11 @@ function Navigation() {
         window.location.href = '/login';
       });
     }
+
+    // Set up 401 handler for API calls with invalid token
+    setAuthErrorHandler(() => {
+      setAuthenticated(false);
+    });
 
     return () => {
       clearSessionExpiryHandler();
