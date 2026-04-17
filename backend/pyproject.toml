@@ -51,6 +51,15 @@ syntexa = "syntexa.cli:main"
 syntexa-daemon = "syntexa.daemon.main:run"
 syntexa-api = "syntexa.api.main:run"
 
+[tool.hatch.envs.dev]
+dependencies = [
+    "uvicorn[standard]>=0.23",
+    "watchdog>=3.0",
+]
+
+[tool.hatch.envs.dev.scripts]
+dev = "uvicorn syntexa.api.main:app --reload --port 8000"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

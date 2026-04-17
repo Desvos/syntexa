@@ -9,7 +9,9 @@
     "preview": "bunx vite preview",
     "test": "bunx vitest run",
     "test:watch": "bunx vitest",
-    "lint": "bunx eslint src --ext .js,.jsx"
+    "lint": "bunx eslint src --ext .js,.jsx",
+    "api": "cd ../backend && python -m uvicorn syntexa.api.main:app --reload --port 8000",
+    "daemon": "cd ../backend && python -m syntexa.daemon.main"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
