@@ -1,11 +1,33 @@
 import React, { useEffect, useState } from 'react';
-
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Slider,
+  TextField,
+  Typography,
+} from '@mui/material';
 import RoleOrder from './RoleOrder.jsx';
 import TaskTypeSelect from './TaskTypeSelect.jsx';
 
 const EMPTY = { task_type: '', roles: [], max_rounds: 60 };
 
+/**
+ * CompositionEditor - MUI-based composition editor dialog
+ *
+ * Features:
+ * - Task type selector (disabled in edit mode)
+ * - Role ordering with drag/drop or list
+ * - Slider for max rounds
+ * - Error display with Alert
+ */
 export default function CompositionEditor({
+  open,
+  onClose,
   composition,
   availableRoles,
   existingTaskTypes,
@@ -20,7 +42,7 @@ export default function CompositionEditor({
   useEffect(() => {
     setForm(composition ? compToForm(composition) : EMPTY);
     setError(null);
-  }, [composition]);
+  }, [composition, open]);
 
   const excludeTaskTypes = isEdit
     ? []
@@ -47,6 +69,7 @@ export default function CompositionEditor({
             max_rounds: Number(form.max_rounds),
           };
       await onSave(payload);
+      onClose?.();
     } catch (err) {
       setError(err.message || 'Save failed.');
     } finally {
@@ -54,58 +77,112 @@ export default function CompositionEditor({
     }
   }
 
+  const handleClose = () => {
+    if (!saving) {
+      setError(null);
+      onClose?.();
+      onCancel?.();
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="stack" aria-label="composition editor">
-      <div>
-        <div>Task type</div>
-        <TaskTypeSelect
-          value={form.task_type}
-          onChange={(v) => setForm({ ...form, task_type: v })}
-          disabled={isEdit || saving}
-          exclude={excludeTaskTypes}
-        />
-        {isEdit && (
-          <div className="muted" style={{ fontSize: '0.8rem' }}>
-            Task type can't change — it's the daemon's lookup key.
-          </div>
-        )}
-      </div>
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+      <DialogTitle>
+        {isEdit ? `Edit Composition: ${composition.task_type}` : 'Create New Composition'}
+      </DialogTitle>
 
-      <div>
-        <div>Role pipeline</div>
-        <RoleOrder
-          value={form.roles}
-          available={availableRoles}
-          onChange={(v) => setForm({ ...form, roles: v })}
-          disabled={saving}
-        />
-      </div>
+      <form onSubmit={handleSubmit}>
+        <DialogContent>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
 
-      <div>
-        <div>Max rounds</div>
-        <input
-          type="number"
-          aria-label="Max rounds"
-          min={1}
-          max={500}
-          value={form.max_rounds}
-          onChange={(e) => setForm({ ...form, max_rounds: e.target.value })}
-          disabled={saving}
-          required
-        />
-      </div>
+          {/* Task Type */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Task Type
+            </Typography>
+            <TaskTypeSelect
+              value={form.task_type}
+              onChange={(v) => setForm({ ...form, task_type: v })}
+              disabled={isEdit || saving}
+              exclude={excludeTaskTypes}
+            />
+            {isEdit && (
+              <Typography variant="caption" color="text.secondary">
+                Task type can't change — it's the daemon's lookup key.
+              </Typography>
+            )}
+          </Box>
 
-      {error && <div className="error" role="alert">{error}</div>}
+          {/* Role Pipeline */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Role Pipeline
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Select and order roles for this task type. The first role is the entry point.
+            </Typography>
 
-      <div className="row">
-        <button type="submit" className="primary" disabled={saving}>
-          {saving ? 'Saving…' : isEdit ? 'Save' : 'Create composition'}
-        </button>
-        <button type="button" onClick={onCancel} disabled={saving}>
-          Cancel
-        </button>
-      </div>
-    </form>
+            <RoleOrder
+              value={form.roles}
+              available={availableRoles}
+              onChange={(v) => setForm({ ...form, roles: v })}
+              disabled={saving}
+            />
+          </Box>
+
+          {/* Max Rounds */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Max Rounds
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Slider
+                value={form.max_rounds}
+                onChange={(e, v) => setForm({ ...form, max_rounds: v })}
+                disabled={saving}
+                min={1}
+                max={500}
+                step={10}
+                marks={[
+                  { value: 1, label: '1' },
+                  { value: 60, label: '60' },
+                  { value: 120, label: '120' },
+                  { value: 500, label: '500' },
+                ]}
+                valueLabelDisplay="auto"
+                sx={{ flex: 1 }}
+              />
+              <TextField
+                type="number"
+                value={form.max_rounds}
+                onChange={(e) => setForm({ ...form, max_rounds: parseInt(e.target.value) || 1 })}
+                disabled={saving}
+                inputProps={{ min: 1, max: 500 }}
+                sx={{ width: 80 }}
+                size="small"
+              />
+            </Box>
+          </Box>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={handleClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={saving || (!isEdit && !form.task_type) || form.roles.length === 0}
+          >
+            {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Composition'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 }
 

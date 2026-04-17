@@ -1,5 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
-
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CircularProgress,
+  Divider,
+  Grid,
+  Skeleton,
+  Slider,
+  Snackbar,
+  TextField,
+  Typography,
+} from '@mui/material';
+import SaveIcon from '@mui/icons-material/Save';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { api, ApiError } from '../api/client.js';
 import ConnectionStatus from '../components/ConnectionStatus.jsx';
 
@@ -12,13 +29,24 @@ const DEFAULT_SETTINGS = {
   repo_path: '.',
 };
 
+/**
+ * SettingsPage - System settings page with MUI components
+ *
+ * Features:
+ * - Form fields with validation
+ * - Slider for numeric settings
+ * - Save/Reset actions
+ * - Connection status display
+ * - Snackbar notifications
+ */
 export default function SettingsPage() {
   const [settings, setSettings] = useState(null);
   const [originalSettings, setOriginalSettings] = useState(null);
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [hasChanges, setHasChanges] = useState(false);
 
   const loadSettings = useCallback(async () => {
@@ -51,15 +79,13 @@ export default function SettingsPage() {
       return updated;
     });
     setError(null);
-    setSuccess(null);
   };
 
   const handleSave = async () => {
     setError(null);
-    setSuccess(null);
+    setSaving(true);
 
     try {
-      // Build payload with only changed values
       const payload = {};
       Object.keys(DEFAULT_SETTINGS).forEach((key) => {
         if (settings[key] !== originalSettings[key]) {
@@ -68,7 +94,8 @@ export default function SettingsPage() {
       });
 
       if (Object.keys(payload).length === 0) {
-        setSuccess('No changes to save.');
+        setSnackbar({ open: true, message: 'No changes to save.', severity: 'info' });
+        setSaving(false);
         return;
       }
 
@@ -76,13 +103,15 @@ export default function SettingsPage() {
       setSettings(updated);
       setOriginalSettings(updated);
       setHasChanges(false);
-      setSuccess('Settings saved successfully. Changes take effect immediately.');
+      setSnackbar({ open: true, message: 'Settings saved successfully. Changes take effect immediately.', severity: 'success' });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
         setError('Failed to save settings. Please try again.');
       }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -90,7 +119,10 @@ export default function SettingsPage() {
     setSettings(originalSettings);
     setHasChanges(false);
     setError(null);
-    setSuccess(null);
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   const formatLabel = (key) => {
@@ -111,84 +143,153 @@ export default function SettingsPage() {
     return descriptions[key] || '';
   };
 
-  const renderSettingInput = (key, value) => {
-    const isNumeric = typeof DEFAULT_SETTINGS[key] === 'number';
-
-    if (key === 'repo_path') {
-      return (
-        <input
-          type="text"
-          id={key}
-          value={value}
-          disabled
-          className="input-disabled"
-        />
-      );
-    }
-
-    return (
-      <input
-        type={isNumeric ? 'number' : 'text'}
-        id={key}
-        value={value}
-        onChange={(e) => handleChange(key, isNumeric ? parseInt(e.target.value, 10) || 0 : e.target.value)}
-        min={isNumeric ? 1 : undefined}
-        className="input"
-      />
-    );
+  const getSliderConfig = (key) => {
+    const configs = {
+      poll_interval: { min: 10, max: 3600, step: 10 },
+      max_concurrent: { min: 1, max: 10, step: 1 },
+      log_retention_days: { min: 1, max: 365, step: 1 },
+    };
+    return configs[key] || { min: 0, max: 100, step: 1 };
   };
 
   if (loading && !settings) {
     return (
-      <main>
-        <h1>System Settings</h1>
-        <p className="muted">Loading...</p>
-      </main>
+      <Box sx={{ width: '100%' }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 500, mb: 2 }}>
+          System Settings
+        </Typography>
+        <Skeleton variant="rectangular" height={400} />
+      </Box>
     );
   }
 
   return (
-    <main>
-      <h1>System Settings</h1>
-      <p className="muted">
+    <Box sx={{ width: '100%' }}>
+      <Typography variant="h4" component="h1" sx={{ fontWeight: 500, mb: 1 }}>
+        System Settings
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Configure daemon behavior. Runtime-tunable settings take effect without restart.
-      </p>
+      </Typography>
 
-      {error && <div className="error" role="alert">{error}</div>}
-      {success && <div className="success" role="status">{success}</div>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
 
-      <section aria-label="settings form">
-        <div className="settings-form">
-          {Object.keys(DEFAULT_SETTINGS).map((key) => (
-            <div key={key} className="form-group">
-              <label htmlFor={key}>{formatLabel(key)}</label>
-              {renderSettingInput(key, settings?.[key] ?? DEFAULT_SETTINGS[key])}
-              <p className="help-text">{getSettingDescription(key)}</p>
-            </div>
-          ))}
-        </div>
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={8}>
+          <Card variant="outlined">
+            <CardHeader
+              title="Daemon Configuration"
+              action={
+                <Button
+                  startIcon={<RefreshIcon />}
+                  onClick={loadSettings}
+                  disabled={loading}
+                  size="small"
+                >
+                  Refresh
+                </Button>
+              }
+            />
+            <CardContent>
+              <Grid container spacing={3}>
+                {Object.keys(DEFAULT_SETTINGS).map((key) => {
+                  const isNumeric = typeof DEFAULT_SETTINGS[key] === 'number';
+                  const isReadOnly = key === 'repo_path';
+                  const sliderConfig = isNumeric ? getSliderConfig(key) : null;
 
-        <div className="form-actions">
-          <button
-            className="primary"
-            onClick={handleSave}
-            disabled={!hasChanges || loading}
-          >
-            {loading ? 'Saving...' : 'Save Changes'}
-          </button>
-          <button
-            onClick={handleReset}
-            disabled={!hasChanges || loading}
-            className="secondary"
-          >
-            Reset
-          </button>
-        </div>
-      </section>
+                  return (
+                    <Grid item xs={12} key={key}>
+                      {isNumeric ? (
+                        <Box>
+                          <Typography variant="subtitle2" gutterBottom>
+                            {formatLabel(key)}
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 1 }}>
+                            <Slider
+                              value={settings?.[key] ?? DEFAULT_SETTINGS[key]}
+                              onChange={(e, v) => handleChange(key, v)}
+                              disabled={loading || saving}
+                              min={sliderConfig.min}
+                              max={sliderConfig.max}
+                              step={sliderConfig.step}
+                              valueLabelDisplay="auto"
+                              sx={{ flex: 1 }}
+                            />
+                            <TextField
+                              type="number"
+                              value={settings?.[key] ?? DEFAULT_SETTINGS[key]}
+                              onChange={(e) => handleChange(key, parseInt(e.target.value) || sliderConfig.min)}
+                              disabled={loading || saving}
+                              inputProps={{ min: sliderConfig.min, max: sliderConfig.max }}
+                              sx={{ width: 100 }}
+                              size="small"
+                            />
+                          </Box>
+                          <Typography variant="caption" color="text.secondary">
+                            {getSettingDescription(key)}
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <TextField
+                          fullWidth
+                          id={key}
+                          label={formatLabel(key)}
+                          value={settings?.[key] ?? DEFAULT_SETTINGS[key]}
+                          onChange={(e) => handleChange(key, e.target.value)}
+                          disabled={loading || saving || isReadOnly}
+                          helperText={getSettingDescription(key)}
+                          InputProps={{
+                            readOnly: isReadOnly,
+                          }}
+                        />
+                      )}
+                    </Grid>
+                  );
+                })}
+              </Grid>
 
-      <section aria-label="connection status">
-        <ConnectionStatus connections={connections} />
-      </section>
-    </main>
+              <Divider sx={{ my: 3 }} />
+
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <Button
+                  variant="outlined"
+                  onClick={handleReset}
+                  disabled={!hasChanges || saving}
+                >
+                  Reset
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                  onClick={handleSave}
+                  disabled={!hasChanges || saving}
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <ConnectionStatus connections={connections} loading={loading} />
+        </Grid>
+      </Grid>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }

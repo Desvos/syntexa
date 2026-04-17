@@ -1,15 +1,38 @@
 import React, { useCallback, useEffect, useState } from 'react';
-
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  IconButton,
+  Toolbar,
+  Tooltip,
+  Typography,
+  Skeleton,
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { api, ApiError } from '../api/client.js';
 import RoleEditor from '../components/RoleEditor.jsx';
 import RolesTable from '../components/RolesTable.jsx';
 
+/**
+ * RolesPage - Agent roles management page with MUI components
+ *
+ * Features:
+ * - DataGrid table with sorting
+ * - Create/Edit role dialog
+ * - Delete role with confirmation
+ * - Refresh button
+ */
 export default function RolesPage() {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(null); // null | 'new' | roleObject
   const [busyId, setBusyId] = useState(null);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -33,6 +56,7 @@ export default function RolesPage() {
       await api.roles.update(editing.id, payload);
     }
     setEditing(null);
+    setEditorOpen(false);
     await refresh();
   }
 
@@ -52,45 +76,90 @@ export default function RolesPage() {
     }
   }
 
+  const handleNewRole = () => {
+    setEditing('new');
+    setEditorOpen(true);
+  };
+
+  const handleEditRole = (role) => {
+    setEditing(role);
+    setEditorOpen(true);
+  };
+
+  const handleCloseEditor = () => {
+    setEditorOpen(false);
+    setEditing(null);
+  };
+
   return (
-    <main>
-      <h1>Agent roles</h1>
-      <p className="muted">
-        Custom roles drive swarm behavior. Default roles can be edited but not deleted.
-      </p>
+    <Box sx={{ width: '100%' }}>
+      {/* Header */}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 500, mb: 1 }}>
+          Agent Roles
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Custom roles drive swarm behavior. Default roles can be edited but not deleted.
+        </Typography>
+      </Box>
 
-      {error && <div className="error" role="alert">{error}</div>}
+      {/* Error */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
 
-      {editing ? (
-        <section aria-label="role editor">
-          <h2>{editing === 'new' ? 'New role' : `Edit: ${editing.name}`}</h2>
-          <RoleEditor
-            role={editing === 'new' ? null : editing}
-            existingRoles={roles}
-            onSave={handleSave}
-            onCancel={() => setEditing(null)}
-          />
-        </section>
-      ) : (
-        <>
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <h2>All roles</h2>
-            <button className="primary" onClick={() => setEditing('new')}>
-              New role
-            </button>
-          </div>
+      {/* Toolbar */}
+      <Toolbar sx={{ justifyContent: 'space-between', px: 0, mb: 2 }}>
+        <Typography variant="h6" component="h2">
+          All Roles
+        </Typography>
+
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Tooltip title="Refresh roles">
+            <IconButton onClick={refresh} disabled={loading}>
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleNewRole}
+          >
+            New Role
+          </Button>
+        </Box>
+      </Toolbar>
+
+      {/* Content */}
+      <Card variant="outlined">
+        <CardContent sx={{ p: 0 }}>
           {loading ? (
-            <p className="muted">Loading…</p>
+            <Box sx={{ p: 2 }}>
+              <Skeleton variant="rectangular" height={400} />
+            </Box>
           ) : (
             <RolesTable
               roles={roles}
-              onEdit={setEditing}
+              onEdit={handleEditRole}
               onDelete={handleDelete}
               busyId={busyId}
             />
           )}
-        </>
-      )}
-    </main>
+        </CardContent>
+      </Card>
+
+      {/* Role Editor Dialog */}
+      <RoleEditor
+        open={editorOpen}
+        onClose={handleCloseEditor}
+        role={editing === 'new' ? null : editing}
+        existingRoles={roles}
+        onSave={handleSave}
+        onCancel={handleCloseEditor}
+      />
+    </Box>
   );
 }

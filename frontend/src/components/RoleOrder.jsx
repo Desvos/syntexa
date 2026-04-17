@@ -1,18 +1,34 @@
 import React, { useState } from 'react';
+import {
+  Box,
+  Button,
+  Chip,
+  FormControl,
+  IconButton,
+  InputLabel,
+  List,
+  ListItem,
+  MenuItem,
+  Paper,
+  Select,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddIcon from '@mui/icons-material/Add';
 
 /**
- * Drag-to-reorder list of role names.
+ * Drag-to-reorder list of role names with MUI.
  *
  * Duplicates are intentionally allowed — e.g. the refactor default has two
- * coders for parallel work (see syntexa.daemon.compositions). Each row
- * carries its own list index as the React key so duplicates don't collide.
+ * coders for parallel work. Each row carries its own list index as the React key
+ * so duplicates don't collide.
  *
- * HTML5 drag-and-drop is used rather than a library to avoid a dep for a
- * single interaction. `data-testid="role-order-item"` + `aria-label` on the
- * up/down keyboard controls give tests deterministic handles.
+ * Uses keyboard controls (up/down arrows) instead of drag for simplicity.
  */
 export default function RoleOrder({ value = [], available = [], onChange, disabled }) {
-  const [dragIndex, setDragIndex] = useState(null);
   const [pickerValue, setPickerValue] = useState('');
 
   const move = (from, to) => {
@@ -35,86 +51,119 @@ export default function RoleOrder({ value = [], available = [], onChange, disabl
     setPickerValue('');
   };
 
+  const availableOptions = available.filter((a) => !value.includes(a));
+
   return (
-    <div className="stack" aria-label="role order">
+    <Box aria-label="role order">
+      {/* Current order list */}
       {value.length === 0 ? (
-        <p className="muted">No roles yet. Add at least one — the first is the swarm entry point.</p>
+        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', py: 2 }}>
+          No roles yet. Add at least one — the first is the swarm entry point.
+        </Typography>
       ) : (
-        <ol style={{ listStyle: 'decimal', paddingLeft: '1.5rem' }}>
-          {value.map((name, i) => (
-            <li
-              key={`${name}-${i}`}
-              draggable={!disabled}
-              data-testid="role-order-item"
-              onDragStart={() => setDragIndex(i)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (dragIndex !== null) move(dragIndex, i);
-                setDragIndex(null);
-              }}
-              onDragEnd={() => setDragIndex(null)}
-              style={{
-                cursor: disabled ? 'default' : 'grab',
-                opacity: dragIndex === i ? 0.5 : 1,
-                padding: '0.25rem 0',
-              }}
-            >
-              <div className="row" style={{ gap: '0.5rem', alignItems: 'center' }}>
-                <span style={{ flex: 1 }}>{name}</span>
-                <button
-                  type="button"
-                  onClick={() => move(i, i - 1)}
-                  disabled={disabled || i === 0}
-                  aria-label={`move ${name} up`}
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  onClick={() => move(i, i + 1)}
-                  disabled={disabled || i === value.length - 1}
-                  aria-label={`move ${name} down`}
-                >
-                  ↓
-                </button>
-                <button
-                  type="button"
-                  className="danger"
-                  onClick={() => remove(i)}
-                  disabled={disabled}
-                  aria-label={`remove ${name} at ${i}`}
-                >
-                  Remove
-                </button>
-              </div>
-            </li>
-          ))}
-        </ol>
+        <Paper variant="outlined" sx={{ mb: 2 }}>
+          <List dense disablePadding>
+            {value.map((name, i) => (
+              <ListItem
+                key={`${name}-${i}`}
+                data-testid="role-order-item"
+                divider={i < value.length - 1}
+                secondaryAction={
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <Tooltip title={`Move ${name} up`}>
+                      <span>
+                        <IconButton
+                          edge="end"
+                          size="small"
+                          onClick={() => move(i, i - 1)}
+                          disabled={disabled || i === 0}
+                          aria-label={`move ${name} up`}
+                        >
+                          <ArrowUpwardIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+
+                    <Tooltip title={`Move ${name} down`}>
+                      <span>
+                        <IconButton
+                          edge="end"
+                          size="small"
+                          onClick={() => move(i, i + 1)}
+                          disabled={disabled || i === value.length - 1}
+                          aria-label={`move ${name} down`}
+                        >
+                          <ArrowDownwardIcon fontSize="small" />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+
+                    <Tooltip title={`Remove ${name}`}>
+                      <IconButton
+                        edge="end"
+                        size="small"
+                        color="error"
+                        onClick={() => remove(i)}
+                        disabled={disabled}
+                        aria-label={`remove ${name} at ${i}`}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                }
+                sx={{
+                  pr: 14, // Make room for buttons
+                  bgcolor: i === 0 ? 'action.selected' : 'inherit',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Chip
+                    label={`${i + 1}`}
+                    size="small"
+                    color={i === 0 ? 'primary' : 'default'}
+                    sx={{ minWidth: 30 }}
+                  />
+                  <Typography sx={{ fontWeight: 500 }}>{name}</Typography>
+                </Box>
+              </ListItem>
+            ))}
+          </List>
+        </Paper>
       )}
 
-      <div className="row" style={{ gap: '0.5rem' }}>
-        <select
-          aria-label="add role"
-          value={pickerValue}
-          onChange={(e) => setPickerValue(e.target.value)}
-          disabled={disabled || available.length === 0}
-        >
-          <option value="">
-            {available.length === 0 ? 'No roles available' : 'Add role…'}
-          </option>
-          {available.map((name) => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </select>
-        <button
-          type="button"
+      {/* Add role controls */}
+      <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+        <FormControl fullWidth size="small">
+          <InputLabel id="add-role-label">Add Role</InputLabel>
+          <Select
+            labelId="add-role-label"
+            id="add-role"
+            value={pickerValue}
+            label="Add Role"
+            onChange={(e) => setPickerValue(e.target.value)}
+            disabled={disabled || availableOptions.length === 0}
+          >
+            <MenuItem value="" disabled>
+              {availableOptions.length === 0 ? 'No roles available' : 'Select role...'}
+            </MenuItem>
+            {availableOptions.map((name) => (
+              <MenuItem key={name} value={name}>{name}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <Button
+          variant="outlined"
+          size="small"
           onClick={add}
           disabled={disabled || !pickerValue}
+          startIcon={<AddIcon />}
+          sx={{ mt: 0.5 }}
         >
           Add
-        </button>
-      </div>
-    </div>
+        </Button>
+      </Box>
+    </Box>
   );
 }

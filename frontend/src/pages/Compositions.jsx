@@ -1,16 +1,39 @@
 import React, { useCallback, useEffect, useState } from 'react';
-
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  IconButton,
+  Skeleton,
+  Toolbar,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { api, ApiError } from '../api/client.js';
 import CompositionEditor from '../components/CompositionEditor.jsx';
 import CompositionsTable from '../components/CompositionsTable.jsx';
 
+/**
+ * CompositionsPage - Swarm compositions management page with MUI components
+ *
+ * Features:
+ * - DataGrid table with sorting
+ * - Create/Edit composition dialog
+ * - Role ordering editor
+ * - Max rounds slider
+ */
 export default function CompositionsPage() {
   const [compositions, setCompositions] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [editing, setEditing] = useState(null);
+  const [editing, setEditing] = useState(null); // null | 'new' | compositionObject
   const [busyId, setBusyId] = useState(null);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -40,6 +63,7 @@ export default function CompositionsPage() {
       await api.compositions.update(editing.id, payload);
     }
     setEditing(null);
+    setEditorOpen(false);
     await refresh();
   }
 
@@ -61,50 +85,91 @@ export default function CompositionsPage() {
   const roleNames = roles.map((r) => r.name);
   const existingTaskTypes = compositions.map((c) => c.task_type);
 
+  const handleNewComposition = () => {
+    setEditing('new');
+    setEditorOpen(true);
+  };
+
+  const handleEditComposition = (composition) => {
+    setEditing(composition);
+    setEditorOpen(true);
+  };
+
+  const handleCloseEditor = () => {
+    setEditorOpen(false);
+    setEditing(null);
+  };
+
   return (
-    <main>
-      <h1>Swarm compositions</h1>
-      <p className="muted">
-        Bind a task type to an ordered role pipeline. The first role is the entry point.
-      </p>
+    <Box sx={{ width: '100%' }}>
+      {/* Header */}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 500, mb: 1 }}>
+          Swarm Compositions
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Bind a task type to an ordered role pipeline. The first role is the entry point.
+        </Typography>
+      </Box>
 
-      {error && <div className="error" role="alert">{error}</div>}
+      {/* Error */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
 
-      {editing ? (
-        <section aria-label="composition editor">
-          <h2>
-            {editing === 'new'
-              ? 'New composition'
-              : `Edit: ${editing.task_type}`}
-          </h2>
-          <CompositionEditor
-            composition={editing === 'new' ? null : editing}
-            availableRoles={roleNames}
-            existingTaskTypes={existingTaskTypes}
-            onSave={handleSave}
-            onCancel={() => setEditing(null)}
-          />
-        </section>
-      ) : (
-        <>
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <h2>All compositions</h2>
-            <button className="primary" onClick={() => setEditing('new')}>
-              New composition
-            </button>
-          </div>
+      {/* Toolbar */}
+      <Toolbar sx={{ justifyContent: 'space-between', px: 0, mb: 2 }}>
+        <Typography variant="h6" component="h2">
+          All Compositions
+        </Typography>
+
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Tooltip title="Refresh compositions">
+            <IconButton onClick={refresh} disabled={loading}>
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleNewComposition}
+          >
+            New Composition
+          </Button>
+        </Box>
+      </Toolbar>
+
+      {/* Content */}
+      <Card variant="outlined">
+        <CardContent sx={{ p: 0 }}>
           {loading ? (
-            <p className="muted">Loading…</p>
+            <Box sx={{ p: 2 }}>
+              <Skeleton variant="rectangular" height={400} />
+            </Box>
           ) : (
             <CompositionsTable
               compositions={compositions}
-              onEdit={setEditing}
+              onEdit={handleEditComposition}
               onDelete={handleDelete}
               busyId={busyId}
             />
           )}
-        </>
-      )}
-    </main>
+        </CardContent>
+      </Card>
+
+      {/* Composition Editor Dialog */}
+      <CompositionEditor
+        open={editorOpen}
+        onClose={handleCloseEditor}
+        composition={editing === 'new' ? null : editing}
+        availableRoles={roleNames}
+        existingTaskTypes={existingTaskTypes}
+        onSave={handleSave}
+        onCancel={handleCloseEditor}
+      />
+    </Box>
   );
 }
