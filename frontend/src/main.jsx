@@ -9,6 +9,7 @@ import RolesPage from './pages/Roles.jsx';
 import SettingsPage from './pages/Settings.jsx';
 import UsersPage from './pages/Users.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import { ThemeContextProvider } from './components/ThemeContextProvider.jsx';
 import { isAuthenticated, authApi, setSessionExpiryHandler, clearSessionExpiryHandler } from './api/auth.js';
 import { setAuthErrorHandler } from './api/client.js';
 import './styles/base.css';
@@ -159,6 +160,8 @@ function App() {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <ThemeContextProvider>
+      <App />
+    </ThemeContextProvider>
   </React.StrictMode>
 );

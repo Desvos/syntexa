@@ -1,9 +1,38 @@
 import React, { useState } from 'react';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  FormControl,
+  IconButton,
+  InputAdornment,
+  InputLabel,
+  OutlinedInput,
+  TextField,
+  Typography,
+  Alert,
+  CircularProgress,
+} from '@mui/material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { authApi } from '../api/auth.js';
 
+/**
+ * LoginForm - MUI-based login form component
+ *
+ * Features:
+ * - Material Design form fields with validation
+ * - Password visibility toggle
+ * - Loading state with spinner
+ * - Error display via Alert component
+ * - Accessible labels and focus management
+ */
 export default function LoginForm({ onSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -16,57 +45,106 @@ export default function LoginForm({ onSuccess }) {
       await authApi.login(username, password);
       onSuccess();
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(err.message || 'Login failed. Please check your credentials and try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="login-form-container">
-      <form className="login-form" onSubmit={handleSubmit}>
-        <h2>Sign In</h2>
+  const handleTogglePassword = () => {
+    setShowPassword((prev) => !prev);
+  };
 
+  const handleMouseDownPassword = (event) => {
+    event.preventDefault();
+  };
+
+  return (
+    <Card elevation={4} sx={{ maxWidth: 400, width: '100%', mx: 'auto' }}>
+      <CardHeader
+        title={
+          <Typography variant="h5" component="h1" align="center" gutterBottom>
+            Sign In
+          </Typography>
+        }
+        subheader={
+          <Typography variant="body2" color="text.secondary" align="center">
+            Enter your credentials to access the dashboard
+          </Typography>
+        }
+        sx={{ pb: 0 }}
+      />
+
+      <CardContent>
         {error && (
-          <div className="error-message" role="alert">
+          <Alert severity="error" sx={{ mb: 2 }} role="alert">
             {error}
-          </div>
+          </Alert>
         )}
 
-        <div className="form-group">
-          <label htmlFor="username">Username</label>
-          <input
+        <Box component="form" onSubmit={handleSubmit} noValidate>
+          <TextField
+            autoFocus
+            fullWidth
+            required
             id="username"
-            type="text"
+            label="Username"
+            name="username"
+            autoComplete="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="Enter username"
-            required
             disabled={loading}
+            margin="normal"
+            placeholder="Enter your username"
           />
-        </div>
 
-        <div className="form-group">
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter password"
-            required
-            disabled={loading}
-          />
-        </div>
+          <FormControl fullWidth margin="normal" variant="outlined">
+            <InputLabel htmlFor="password" required>
+              Password
+            </InputLabel>
+            <OutlinedInput
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              placeholder="Enter your password"
+              required
+              endAdornment={
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    onClick={handleTogglePassword}
+                    onMouseDown={handleMouseDownPassword}
+                    edge="end"
+                    size="small"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              }
+              label="Password"
+            />
+          </FormControl>
 
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={loading}
-        >
-          {loading ? 'Signing in...' : 'Sign In'}
-        </button>
-      </form>
-    </div>
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            size="large"
+            disabled={loading || !username || !password}
+            sx={{ mt: 3, mb: 2, py: 1.5 }}
+          >
+            {loading ? (
+              <CircularProgress size={24} color="inherit" />
+            ) : (
+              'Sign In'
+            )}
+          </Button>
+        </Box>
+      </CardContent>
+    </Card>
   );
 }
