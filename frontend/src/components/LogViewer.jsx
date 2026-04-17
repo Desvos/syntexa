@@ -1,20 +1,71 @@
-import React from 'react';
+import React, { memo } from 'react';
+import {
+  Box,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  IconButton,
+  Link,
+  Paper,
+  Typography,
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import TimerOffIcon from '@mui/icons-material/TimerOff';
+import HelpIcon from '@mui/icons-material/Help';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
+const STATUS_CONFIG = {
+  completed: { icon: CheckCircleIcon, color: 'success', label: 'Completed' },
+  failed: { icon: ErrorIcon, color: 'error', label: 'Failed' },
+  timeout: { icon: TimerOffIcon, color: 'warning', label: 'Timeout' },
+  running: { icon: CircularProgress, color: 'info', label: 'Running' },
+};
+
+const getStatusConfig = (status) => {
+  return STATUS_CONFIG[status] || { icon: HelpIcon, color: 'default', label: status };
+};
+
+// Memoized metadata item
+const MetaItem = memo(function MetaItem({ label, value, isLink }) {
+  return (
+    <Box sx={{ mb: 1 }}>
+      <Typography variant="caption" color="text.secondary" component="dt" sx={{ fontWeight: 600 }}>
+        {label}:
+      </Typography>
+      <Typography variant="body2" component="dd">
+        {isLink ? (
+          <Link href={value} target="_blank" rel="noopener noreferrer" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            {value} <OpenInNewIcon fontSize="inherit" />
+          </Link>
+        ) : (
+          value
+        )}
+      </Typography>
+    </Box>
+  );
+});
+
+/**
+ * LogViewer - MUI Dialog for viewing swarm logs
+ *
+ * Features:
+ * - Full-screen dialog with scrollable content
+ * - Status chip with colored icon
+ * - Metadata display with definition list
+ * - Preformatted log content
+ */
 export default function LogViewer({ logData, loading, onClose }) {
-  if (!logData && !loading) return null;
+  const open = Boolean(logData) || loading;
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'completed':
-        return '✅';
-      case 'failed':
-        return '❌';
-      case 'timeout':
-        return '⏱️';
-      default:
-        return '❓';
-    }
-  };
+  if (!open) return null;
+
+  const statusConfig = logData ? getStatusConfig(logData.status) : null;
+  const StatusIcon = statusConfig?.icon;
 
   const formatDate = (dateString) => {
     if (!dateString) return '—';
@@ -22,76 +73,113 @@ export default function LogViewer({ logData, loading, onClose }) {
   };
 
   return (
-    <div className="log-viewer-overlay">
-      <div className="log-viewer">
-        <div className="log-viewer-header">
-          <div className="log-viewer-title">
-            {loading ? (
-              <>Loading log...</>
-            ) : (
-              <>
-                <span>{getStatusIcon(logData.status)}</span>
-                <span>{logData.task_name}</span>
-                <span className="status-badge">{logData.status}</span>
-              </>
-            )}
-          </div>
-          <button onClick={onClose} className="close-button">✕</button>
-        </div>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
+      fullWidth
+      scroll="paper"
+      aria-labelledby="log-viewer-title"
+    >
+      <DialogTitle
+        id="log-viewer-title"
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {loading ? (
+            <>
+              <CircularProgress size={20} />
+              <Typography variant="h6">Loading log...</Typography>
+            </>
+          ) : (
+            <>
+              {StatusIcon && <StatusIcon color={statusConfig.color} fontSize="small" />}
+              <Typography variant="h6">{logData.task_name}</Typography>
+              <Chip
+                label={statusConfig?.label || logData.status}
+                color={statusConfig?.color || 'default'}
+                size="small"
+              />
+            </>
+          )}
+        </Box>
 
+        <IconButton onClick={onClose} size="small" edge="end" aria-label="close">
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+
+      <DialogContent dividers>
         {loading ? (
-          <div className="log-viewer-content">
-            <p className="muted">Loading conversation log...</p>
-          </div>
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <CircularProgress />
+          </Box>
         ) : (
           <>
-            <div className="log-viewer-meta">
-              <dl>
-                <dt>Task ID:</dt>
-                <dd>{logData.task_id}</dd>
-
-                <dt>Status:</dt>
-                <dd>{logData.status}</dd>
-
-                <dt>Started:</dt>
-                <dd>{formatDate(logData.started_at)}</dd>
-
+            {/* Metadata Section */}
+            <Paper variant="outlined" sx={{ p: 2, mb: 3 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Swarm Details
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              <Box component="dl" sx={{ m: 0 }}>
+                <MetaItem label="Task ID" value={logData.task_id} />
+                <MetaItem label="Status" value={logData.status} />
+                <MetaItem label="Started" value={formatDate(logData.started_at)} />
                 {logData.completed_at && (
-                  <>
-                    <dt>Completed:</dt>
-                    <dd>{formatDate(logData.completed_at)}</dd>
-                  </>
+                  <MetaItem label="Completed" value={formatDate(logData.completed_at)} />
                 )}
-
                 {logData.pr_url && (
-                  <>
-                    <dt>PR URL:</dt>
-                    <dd>
-                      <a href={logData.pr_url} target="_blank" rel="noopener noreferrer">
-                        {logData.pr_url}
-                      </a>
-                    </dd>
-                  </>
+                  <MetaItem label="PR URL" value={logData.pr_url} isLink />
                 )}
-              </dl>
-            </div>
+              </Box>
+            </Paper>
 
-            <div className="log-viewer-content">
-              <h4>Conversation Log</h4>
-              {logData.log ? (
-                <pre className="log-content">{logData.log}</pre>
-              ) : (
-                <p className="muted">
-                  No conversation log available.
-                  {logData.status === 'running' && ' Swarm is still active.'}
-                  {(logData.status === 'completed' || logData.status === 'failed') &&
-                    ' Log may have been cleaned up due to retention policy.'}
-                </p>
-              )}
-            </div>
+            {/* Log Content */}
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                Conversation Log
+              </Typography>
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 2,
+                  backgroundColor: 'grey.50',
+                  maxHeight: '500px',
+                  overflow: 'auto',
+                }}
+              >
+                {logData.log ? (
+                  <Box
+                    component="pre"
+                    sx={{
+                      m: 0,
+                      fontFamily: 'monospace',
+                      fontSize: '0.875rem',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {logData.log}
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                    No conversation log available.
+                    {logData.status === 'running' && ' Swarm is still active.'}
+                    {(logData.status === 'completed' || logData.status === 'failed') &&
+                      ' Log may have been cleaned up due to retention policy.'}
+                  </Typography>
+                )}
+              </Paper>
+            </Box>
           </>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

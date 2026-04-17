@@ -1,10 +1,27 @@
-import React, { useCallback, useEffect, useState } from 'react';
-
+import React, { useCallback, useEffect, useState, memo } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  Container,
+  Typography,
+  Snackbar,
+} from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { api, ApiError } from '../api/client.js';
 import ActiveSwarms from '../components/ActiveSwarms.jsx';
 import CompletedSwarms from '../components/CompletedSwarms.jsx';
 import LogViewer from '../components/LogViewer.jsx';
 
+/**
+ * MonitorPage - Swarm monitoring dashboard with MUI components
+ *
+ * Features:
+ * - Auto-polling every 5 seconds for active swarms
+ * - Manual refresh for completed swarms
+ * - Log viewer dialog
+ * - Error handling with Snackbar (Vercel best practice: no inline error banners)
+ */
 export default function MonitorPage() {
   const [activeSwarms, setActiveSwarms] = useState([]);
   const [completedSwarms, setCompletedSwarms] = useState([]);
@@ -19,16 +36,14 @@ export default function MonitorPage() {
 
   const POLLING_INTERVAL = 5000; // 5 seconds
 
+  // Vercel best practice: useCallback for stable function references
   const loadActiveSwarms = useCallback(async () => {
     try {
       const data = await api.swarms.active();
       setActiveSwarms(data.swarms);
     } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError('Failed to load active swarms.');
-      }
+      // Don't set error here - polling shouldn't show error on every failure
+      console.error('Failed to load active swarms:', err);
     } finally {
       setLoadingActive(false);
     }
@@ -54,9 +69,7 @@ export default function MonitorPage() {
     setLoadingCompleted(true);
     setError(null);
 
-    Promise.all([loadActiveSwarms(), loadCompletedSwarms()]).finally(() => {
-      // Loading flags are handled by individual loaders
-    });
+    Promise.all([loadActiveSwarms(), loadCompletedSwarms()]);
   }, [loadActiveSwarms, loadCompletedSwarms]);
 
   const handleViewLog = async (swarmId) => {
@@ -84,6 +97,10 @@ export default function MonitorPage() {
     setLogData(null);
   };
 
+  const handleCloseError = () => {
+    setError(null);
+  };
+
   // Initial load and polling
   useEffect(() => {
     loadAll();
@@ -95,42 +112,71 @@ export default function MonitorPage() {
   }, [loadAll, loadActiveSwarms]);
 
   return (
-    <main>
-      <h1>Swarm Monitor</h1>
-      <p className="muted">
-        Monitor active and completed swarm instances. Active swarms update every {POLLING_INTERVAL / 1000}s.
-      </p>
+    <Container maxWidth="lg" sx={{ py: 3 }}>
+      {/* Header */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 500, mb: 1 }}>
+          Swarm Monitor
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Monitor active and completed swarm instances. Active swarms update every {POLLING_INTERVAL / 1000}s.
+        </Typography>
+      </Box>
 
-      {error && <div className="error" role="alert">{error}</div>}
+      {/* Refresh All Button - Vercel best practice: clear action button */}
+      <Box sx={{ mb: 3 }}>
+        <Button
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={loadAll}
+          disabled={loadingActive || loadingCompleted}
+        >
+          Refresh All
+        </Button>
+      </Box>
 
-      <section aria-label="active swarms">
+      {/* Active Swarms Section */}
+      <Box component="section" aria-label="active swarms" sx={{ mb: 4 }}>
         <ActiveSwarms
           swarms={activeSwarms}
           loading={loadingActive}
           onRefresh={loadActiveSwarms}
         />
-      </section>
+      </Box>
 
-      <section aria-label="completed swarms">
+      {/* Completed Swarms Section */}
+      <Box component="section" aria-label="completed swarms" sx={{ mb: 4 }}>
         <CompletedSwarms
           swarms={completedSwarms}
           loading={loadingCompleted}
           onViewLog={handleViewLog}
           selectedSwarmId={selectedSwarmId}
         />
-      </section>
+      </Box>
 
+      {/* Log Viewer Dialog */}
       <LogViewer
         logData={logData}
         loading={loadingLog}
         onClose={handleCloseLog}
       />
 
-      <div className="monitor-actions">
-        <button onClick={loadAll} className="secondary">
-          Refresh All
-        </button>
-      </div>
-    </main>
+      {/* Error Snackbar - Vercel best practice: transient notification vs persistent banner */}
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={handleCloseError}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={handleCloseError}
+          severity="error"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {error}
+        </Alert>
+      </Snackbar>
+    </Container>
   );
 }
