@@ -1,13 +1,15 @@
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 
-import CompositionsPage from './pages/Compositions.jsx';
 import LoginPage from './pages/Login.jsx';
-import MonitorPage from './pages/Monitor.jsx';
-import RolesPage from './pages/Roles.jsx';
 import SettingsPage from './pages/Settings.jsx';
 import UsersPage from './pages/Users.jsx';
+import WizardPage from './pages/Wizard.jsx';
+import LLMProvidersPage from './pages/LLMProviders.jsx';
+import AgentsPage from './pages/Agents.jsx';
+import RepositoriesPage from './pages/Repositories.jsx';
+import SwarmsPage from './pages/Swarms.jsx';
 import AppLayout from './components/AppLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { ThemeContextProvider } from './components/ThemeContextProvider.jsx';
@@ -53,31 +55,39 @@ function App() {
           path="/"
           element={
             <AuthenticatedShell>
-              <Navigate to="/roles" replace />
+              <WizardPage />
             </AuthenticatedShell>
           }
         />
         <Route
-          path="/roles"
+          path="/llm-providers"
           element={
             <AuthenticatedShell>
-              <RolesPage />
+              <LLMProvidersPage />
             </AuthenticatedShell>
           }
         />
         <Route
-          path="/compositions"
+          path="/agents"
           element={
             <AuthenticatedShell>
-              <CompositionsPage />
+              <AgentsPage />
             </AuthenticatedShell>
           }
         />
         <Route
-          path="/monitor"
+          path="/repositories"
           element={
             <AuthenticatedShell>
-              <MonitorPage />
+              <RepositoriesPage />
+            </AuthenticatedShell>
+          }
+        />
+        <Route
+          path="/swarms"
+          element={
+            <AuthenticatedShell>
+              <SwarmsPage />
             </AuthenticatedShell>
           }
         />

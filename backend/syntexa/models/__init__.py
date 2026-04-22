@@ -1,20 +1,26 @@
 """ORM models and database access."""
 from syntexa.models.database import Base, create_all, get_engine, init_engine, session_scope
 from syntexa.models.entities import (
-    AgentRole,
+    Agent,
     ExternalCredential,
-    SwarmComposition,
-    SwarmInstance,
+    LLMProvider,
+    ProcessedEvent,
+    Repository,
+    Swarm,
+    SwarmAgent,
     SystemSetting,
     User,
 )
 
 __all__ = [
-    "AgentRole",
+    "Agent",
     "Base",
     "ExternalCredential",
-    "SwarmComposition",
-    "SwarmInstance",
+    "LLMProvider",
+    "ProcessedEvent",
+    "Repository",
+    "Swarm",
+    "SwarmAgent",
     "SystemSetting",
     "User",
     "create_all",
