@@ -1,10 +1,10 @@
 """Authentication utilities for session-based auth.
 
 Provides bcrypt password hashing and secure session token generation.
+Uses SQLite for session storage (survives server reloads).
 """
 from __future__ import annotations
 
-import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import TypedDict
@@ -12,10 +12,30 @@ from typing import TypedDict
 import bcrypt
 from fastapi import HTTPException, Request, status
 from fastapi.security import HTTPBearer
+from sqlalchemy import Column, DateTime, Integer, String, create_engine, text
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Simple in-memory session store. For production, this should be Redis or DB.
-# Format: {session_token: SessionData}
-_session_store: dict[str, "SessionData"] = {}
+# SQLite session storage (persistent across reloads)
+DB_PATH = "sessions.db"
+engine = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+
+class SessionModel(Base):
+    """Session table for persistent storage."""
+
+    __tablename__ = "sessions"
+
+    token = Column(String, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False)
+    username = Column(String, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+
+
+# Create tables
+Base.metadata.create_all(bind=engine)
 
 
 class SessionData(TypedDict):
@@ -44,75 +64,105 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 def create_session(user_id: int, username: str, expires_in_hours: int = 24) -> str:
-    """Create a new session and return the session token.
-
-    Args:
-        user_id: The user's ID
-        username: The user's username
-        expires_in_hours: Session expiration time (default 24 hours)
-
-    Returns:
-        Session token string
-    """
+    """Create a new session and return the session token."""
     token = secrets.token_urlsafe(32)
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(hours=expires_in_hours)
 
-    _session_store[token] = SessionData(
-        user_id=user_id,
-        username=username,
-        created_at=now,
-        expires_at=expires_at,
-    )
-    return token
+    db = SessionLocal()
+    try:
+        # Clean expired sessions for this user
+        db.query(SessionModel).filter(
+            SessionModel.user_id == user_id, SessionModel.expires_at < now
+        ).delete(synchronize_session=False)
+
+        # Create new session
+        session = SessionModel(
+            token=token,
+            user_id=user_id,
+            username=username,
+            created_at=now,
+            expires_at=expires_at,
+        )
+        db.add(session)
+        db.commit()
+        return token
+    finally:
+        db.close()
 
 
 def get_session(token: str | None) -> SessionData | None:
-    """Get session data if token is valid and not expired.
-
-    Args:
-        token: The session token
-
-    Returns:
-        SessionData if valid, None otherwise
-    """
+    """Get session data if token is valid and not expired."""
     if token is None:
         return None
 
-    session = _session_store.get(token)
-    if session is None:
-        return None
+    db = SessionLocal()
+    try:
+        session = (
+            db.query(SessionModel).filter(SessionModel.token == token).first()
+        )
+        if session is None:
+            return None
 
-    now = datetime.now(timezone.utc)
-    if now > session["expires_at"]:
-        # Clean up expired session
-        del _session_store[token]
-        return None
+        now = datetime.now(timezone.utc)
+        if now > session.expires_at:
+            # Clean up expired session
+            db.delete(session)
+            db.commit()
+            return None
 
-    return session
+        return SessionData(
+            user_id=session.user_id,
+            username=session.username,
+            created_at=session.created_at,
+            expires_at=session.expires_at,
+        )
+    finally:
+        db.close()
 
 
 def delete_session(token: str) -> bool:
-    """Delete a session (logout).
+    """Delete a session (logout)."""
+    db = SessionLocal()
+    try:
+        session = db.query(SessionModel).filter(SessionModel.token == token).first()
+        if session:
+            db.delete(session)
+            db.commit()
+            return True
+        return False
+    finally:
+        db.close()
 
-    Args:
-        token: The session token to delete
 
-    Returns:
-        True if session was found and deleted, False otherwise
-    """
-    if token in _session_store:
-        del _session_store[token]
-        return True
-    return False
+def cleanup_expired_sessions() -> int:
+    """Remove all expired sessions from the store."""
+    db = SessionLocal()
+    try:
+        now = datetime.now(timezone.utc)
+        result = (
+            db.query(SessionModel)
+            .filter(SessionModel.expires_at < now)
+            .delete(synchronize_session=False)
+        )
+        db.commit()
+        return result
+    finally:
+        db.close()
+
+
+def get_session_count() -> int:
+    """Get the number of active sessions."""
+    cleanup_expired_sessions()
+    db = SessionLocal()
+    try:
+        return db.query(SessionModel).count()
+    finally:
+        db.close()
 
 
 def get_current_user(request: Request) -> SessionData:
-    """Dependency to get the current authenticated user.
-
-    Raises:
-        HTTPException: 401 if not authenticated or session expired
-    """
+    """Dependency to get the current authenticated user."""
     auth_header = request.headers.get("authorization", "")
     if not auth_header.startswith("Bearer "):
         raise HTTPException(
@@ -132,28 +182,3 @@ def get_current_user(request: Request) -> SessionData:
         )
 
     return session
-
-
-def cleanup_expired_sessions() -> int:
-    """Remove all expired sessions from the store.
-
-    Returns:
-        Number of sessions removed
-    """
-    now = datetime.now(timezone.utc)
-    expired = [
-        token for token, data in _session_store.items() if now > data["expires_at"]
-    ]
-    for token in expired:
-        del _session_store[token]
-    return len(expired)
-
-
-def get_session_count() -> int:
-    """Get the number of active sessions.
-
-    Returns:
-        Number of active (non-expired) sessions
-    """
-    cleanup_expired_sessions()
-    return len(_session_store)

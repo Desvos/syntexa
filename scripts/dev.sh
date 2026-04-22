@@ -29,27 +29,31 @@ show_help() {
     echo "  ./scripts/dev.sh all      # Full stack"
 }
 
+# Detect venv path (Windows Git Bash uses Scripts/, Linux/Mac uses bin/)
+get_venv_python() {
+    if [ -f ".venv/Scripts/python.exe" ]; then
+        echo ".venv/Scripts/python"
+    elif [ -d ".venv/bin" ]; then
+        echo ".venv/bin/python"
+    else
+        echo "python"
+    fi
+}
+
 start_api() {
     echo -e "${GREEN}Starting API server...${NC}"
     cd "$PROJECT_ROOT/backend"
-    # Check for venv
-    if [ -d ".venv" ]; then
-        source .venv/bin/activate
-    elif [ -d "venv" ]; then
-        source venv/bin/activate
-    fi
-    exec uvicorn syntexa.api.main:app --reload --host 0.0.0.0 --port 8000
+    PYTHON=$(get_venv_python)
+    # Note: --reload is disabled because sessions are stored in-memory
+    # and reload clears them. For dev with auth, don't use reload.
+    exec "$PYTHON" -m uvicorn syntexa.api.main:app --host 0.0.0.0 --port 8000
 }
 
 start_daemon() {
     echo -e "${GREEN}Starting daemon...${NC}"
     cd "$PROJECT_ROOT/backend"
-    if [ -d ".venv" ]; then
-        source .venv/bin/activate
-    elif [ -d "venv" ]; then
-        source venv/bin/activate
-    fi
-    exec python -m syntexa.daemon.main
+    PYTHON=$(get_venv_python)
+    exec "$PYTHON" -m syntexa.daemon.main
 }
 
 start_frontend() {

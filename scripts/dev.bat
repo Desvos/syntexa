@@ -1,9 +1,13 @@
+ccd
 @echo off
 REM Syntexa Development Launcher for Windows
 REM Usage: .\scripts\dev.bat [api|daemon|frontend|all]
 
+setlocal enabledelayedexpansion
+
 set "SCRIPT_DIR=%~dp0"
 set "PROJECT_ROOT=%SCRIPT_DIR%.."
+set "BACKEND_DIR=%PROJECT_ROOT%\backend"
 
 echo Syntexa Development Launcher
 
@@ -21,20 +25,24 @@ goto :help
 
 :api
 echo Starting API server on http://localhost:8000...
-cd /d "%PROJECT_ROOT%\backend"
+cd /d "%BACKEND_DIR%"
 if exist ".venv\Scripts\activate.bat" (
     call .venv\Scripts\activate.bat
+    python -m uvicorn syntexa.api.main:app --reload --host 0.0.0.0 --port 8000
+) else (
+    python -m uvicorn syntexa.api.main:app --reload --host 0.0.0.0 --port 8000
 )
-uvicorn syntexa.api.main:app --reload --host 0.0.0.0 --port 8000
 goto :eof
 
 :daemon
 echo Starting daemon...
-cd /d "%PROJECT_ROOT%\backend"
+cd /d "%BACKEND_DIR%"
 if exist ".venv\Scripts\activate.bat" (
     call .venv\Scripts\activate.bat
+    python -m syntexa.daemon.main
+) else (
+    python -m syntexa.daemon.main
 )
-python -m syntexa.daemon.main
 goto :eof
 
 :frontend
@@ -45,16 +53,18 @@ goto :eof
 
 :all
 echo Starting all services...
-echo Note: This will start them sequentially. Use separate terminals for parallel execution.
-start "Syntexa API" cmd /k "cd /d %PROJECT_ROOT% && .\scripts\dev.bat api"
+echo Opening separate windows for each service...
+start "Syntexa API" cmd /k "cd /d "%BACKEND_DIR%" & (if exist .venv\Scripts\activate.bat call .venv\Scripts\activate.bat) & python -m uvicorn syntexa.api.main:app --reload --host 0.0.0.0 --port 8000"
+timeout /t 3 >nul
+start "Syntexa Daemon" cmd /k "cd /d "%BACKEND_DIR%" & (if exist .venv\Scripts\activate.bat call .venv\Scripts\activate.bat) & python -m syntexa.daemon.main"
 timeout /t 2 >nul
-start "Syntexa Daemon" cmd /k "cd /d %PROJECT_ROOT% && .\scripts\dev.bat daemon"
-timeout /t 2 >nul
-start "Syntexa Frontend" cmd /k "cd /d %PROJECT_ROOT% && .\scripts\dev.bat frontend"
+start "Syntexa Frontend" cmd /k "cd /d "%PROJECT_ROOT%\frontend" & bun run dev"
 echo.
 echo All services started in separate windows!
 echo API:      http://localhost:8000
 echo Frontend: http://localhost:5173
+echo.
+echo Close each window to stop the service.
 goto :eof
 
 :help

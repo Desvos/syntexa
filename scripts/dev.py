@@ -10,22 +10,29 @@ import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent.absolute()
+BACKEND_DIR = PROJECT_ROOT / "backend"
+FRONTEND_DIR = PROJECT_ROOT / "frontend"
+
+def get_python():
+    """Get Python executable from backend/.venv or fallback to system python."""
+    # Windows
+    venv_python = BACKEND_DIR / ".venv" / "Scripts" / "python.exe"
+    if venv_python.exists():
+        return str(venv_python)
+
+    # Linux/Mac
+    venv_python = BACKEND_DIR / ".venv" / "bin" / "python"
+    if venv_python.exists():
+        return str(venv_python)
+
+    return "python"
 
 def run_api():
     """Start API server with auto-reload."""
     print("🚀 Starting API server on http://localhost:8000")
-    os.chdir(PROJECT_ROOT / "backend")
+    os.chdir(BACKEND_DIR)
 
-    # Check for venv
-    venv_python = PROJECT_ROOT / "backend" / ".venv" / "Scripts" / "python.exe"
-    if not venv_python.exists():
-        venv_python = PROJECT_ROOT / "backend" / ".venv" / "bin" / "python"
-
-    if venv_python.exists():
-        python = str(venv_python)
-    else:
-        python = "python"
-
+    python = get_python()
     cmd = [
         python, "-m", "uvicorn",
         "syntexa.api.main:app",
@@ -38,21 +45,16 @@ def run_api():
 def run_daemon():
     """Start daemon."""
     print("🤖 Starting daemon...")
-    os.chdir(PROJECT_ROOT / "backend")
+    os.chdir(BACKEND_DIR)
 
-    venv_python = PROJECT_ROOT / "backend" / ".venv" / "Scripts" / "python.exe"
-    if not venv_python.exists():
-        venv_python = PROJECT_ROOT / "backend" / ".venv" / "bin" / "python"
-
-    python = str(venv_python) if venv_python.exists() else "python"
-
+    python = get_python()
     cmd = [python, "-m", "syntexa.daemon.main"]
     subprocess.run(cmd)
 
 def run_frontend():
     """Start frontend dev server."""
     print("💻 Starting frontend on http://localhost:5173")
-    os.chdir(PROJECT_ROOT / "frontend")
+    os.chdir(FRONTEND_DIR)
     subprocess.run(["bun", "run", "dev"])
 
 def show_help():
@@ -88,19 +90,11 @@ def main():
         elif command == "frontend":
             run_frontend()
         elif command == "all":
-            print("Starting all services...")
-            print("Use Ctrl+C to stop")
-            # Run all in parallel - Windows compatible
-            import threading
-            threads = [
-                threading.Thread(target=run_api, daemon=True),
-                threading.Thread(target=run_daemon, daemon=True),
-                threading.Thread(target=run_frontend, daemon=True),
-            ]
-            for t in threads:
-                t.start()
-            for t in threads:
-                t.join()
+            print("⚠️  'all' requires running multiple processes.")
+            print("   Please use separate terminals or run:")
+            print("     python scripts/dev.py api")
+            print("     python scripts/dev.py daemon")
+            print("     python scripts/dev.py frontend")
         else:
             print(f"Unknown command: {command}")
             show_help()
