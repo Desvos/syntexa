@@ -27,9 +27,16 @@ from syntexa.api.schemas import (
     SwarmList,
     SwarmLogResponse,
     SwarmRead,
+    SwarmRunRequest,
+    SwarmRunResult,
     SwarmUpdate,
 )
 from syntexa.models import Agent, Repository, Swarm, SwarmAgent, SwarmInstance
+from syntexa.orchestrator import run_swarm as run_swarm_impl
+from syntexa.orchestrator.executor import (
+    SwarmAlreadyRunningError,
+    SwarmNotFoundError,
+)
 
 router = APIRouter(prefix="/swarms", tags=["swarms"])
 
@@ -290,6 +297,58 @@ def delete_swarm(swarm_id: int, db: Session = Depends(get_db)) -> Response:
     )
     db.delete(swarm)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# --- orchestrator invocation --------------------------------------------
+
+
+@router.post("/{swarm_id}/run", response_model=SwarmRunResult)
+def run_swarm_route(
+    swarm_id: int,
+    payload: SwarmRunRequest | None = None,
+    db: Session = Depends(get_db),
+) -> SwarmRunResult:
+    """Kick off the orchestrator for a swarm.
+
+    Runs synchronously for Phase 5 — Phase 7 listeners will call the
+    same ``run_swarm_impl`` from a background worker. We reuse the
+    route's session so status transitions land in the same transaction
+    the caller is already using (critical for the test-client setup).
+
+    Errors:
+        * 404 when ``swarm_id`` doesn't exist
+        * 409 when the swarm is already in ``status="running"``
+    """
+    body = payload or SwarmRunRequest()
+    try:
+        result = run_swarm_impl(
+            swarm_id,
+            body.task_override,
+            meta_provider_id=body.meta_provider_id,
+            session=db,
+        )
+    except SwarmNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+    except SwarmAlreadyRunningError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
+
+    # Commit the swarm.status transitions written by the executor so the
+    # next request sees them — run_swarm leaves that to the caller when
+    # ``session`` is supplied.
+    db.commit()
+
+    return SwarmRunResult(
+        swarm_id=result.swarm_id,
+        strategy_used=result.strategy_used,
+        order=result.order,
+        agent_outputs={str(k): v for k, v in result.agent_outputs.items()},
+        success=result.success,
+        error=result.error,
+    )
 
 
 # --- legacy log endpoint (kept until Phase 8) ----------------------------

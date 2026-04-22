@@ -750,6 +750,41 @@ class SwarmList(BaseModel):
     swarms: list[SwarmRead]
 
 
+# --- SwarmRun (Phase 5 orchestrator invocation) --------------------------
+
+
+class SwarmRunRequest(BaseModel):
+    """Input for POST /swarms/{id}/run.
+
+    ``task_override`` lets the caller replace the swarm's stored
+    ``task_description`` for a single run without patching the row —
+    handy for ad-hoc invocations where the swarm definition itself is
+    the re-usable part. ``meta_provider_id`` overrides which LLMProvider
+    hosts the orchestrator meta-agent; when omitted we fall back to the
+    first active agent's provider.
+    """
+
+    task_override: str | None = None
+    meta_provider_id: int | None = Field(default=None, ge=1)
+
+
+class SwarmRunResult(BaseModel):
+    """Output of POST /swarms/{id}/run.
+
+    Mirrors ``orchestrator.OrchestratorResult`` 1:1 so the API surface
+    and the in-process dataclass stay in lockstep. ``agent_outputs``
+    keys are strings (JSON constraint) but semantically the agent ID;
+    callers cast back to int if they need it.
+    """
+
+    swarm_id: int
+    strategy_used: str
+    order: list[int] | None
+    agent_outputs: dict[str, str]
+    success: bool
+    error: str | None
+
+
 # --- ExternalCredentials --------------------------------------------------
 
 class ExternalCredentialCreate(BaseModel):
