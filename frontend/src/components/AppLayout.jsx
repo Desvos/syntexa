@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   AppBar,
   Box,
+  Collapse,
   Divider,
   Drawer,
   IconButton,
@@ -24,19 +25,114 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import HubIcon from '@mui/icons-material/Hub';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import StorageIcon from '@mui/icons-material/Storage';
+import FolderIcon from '@mui/icons-material/Folder';
+import MemoryIcon from '@mui/icons-material/Memory';
+import PlayCircleIcon from '@mui/icons-material/PlayCircle';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import UserMenu from './UserMenu.jsx';
 import { authApi, isAuthenticated } from '../api/auth.js';
 import { setAuthErrorHandler } from '../api/client.js';
 
-const NAV_ITEMS = [
-  { label: 'Agent Roles', path: '/roles', icon: PeopleIcon },
-  { label: 'Compositions', path: '/compositions', icon: GroupWorkIcon },
+const PRIMARY_NAV = [
+  { label: 'New Swarm', path: '/', icon: AutoAwesomeIcon },
+];
+
+const ADVANCED_NAV = [
+  { label: 'LLM Providers', path: '/llm-providers', icon: MemoryIcon },
+  { label: 'Agents', path: '/agents', icon: PeopleIcon },
+  { label: 'Repositories', path: '/repositories', icon: FolderIcon },
+  { label: 'Swarms', path: '/swarms', icon: StorageIcon },
   { label: 'Monitor', path: '/monitor', icon: MonitorHeartIcon },
+];
+
+const LEGACY_NAV = [
+  { label: 'Roles (Legacy)', path: '/roles', icon: PeopleIcon },
+  { label: 'Compositions (Legacy)', path: '/compositions', icon: GroupWorkIcon },
+];
+
+const ADMIN_NAV = [
   { label: 'Users', path: '/users', icon: SupervisorAccountIcon },
   { label: 'Settings', path: '/settings', icon: SettingsIcon },
 ];
 
-const DRAWER_WIDTH = 256;
+const ALL_ITEMS = [
+  ...PRIMARY_NAV,
+  ...ADVANCED_NAV,
+  ...LEGACY_NAV,
+  ...ADMIN_NAV,
+];
+
+const DRAWER_WIDTH = 264;
+
+function NavSection({ title, items, active, onItemClick, collapsible = false, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  const header = title && (
+    <ListItemButton
+      onClick={collapsible ? () => setOpen((o) => !o) : undefined}
+      sx={{
+        py: 0.5,
+        mx: 1,
+        borderRadius: 1,
+        cursor: collapsible ? 'pointer' : 'default',
+        '&:hover': collapsible ? undefined : { bgcolor: 'transparent' },
+      }}
+      disableRipple={!collapsible}
+    >
+      <ListItemText
+        primary={title}
+        primaryTypographyProps={{
+          fontSize: '0.7rem',
+          fontWeight: 700,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: 'text.secondary',
+        }}
+      />
+      {collapsible && (open ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />)}
+    </ListItemButton>
+  );
+
+  const list = (
+    <List disablePadding>
+      {items.map((item) => {
+        const Icon = item.icon;
+        const isActive = active === item.path;
+        return (
+          <ListItem key={item.path} disablePadding>
+            <ListItemButton
+              component={Link}
+              to={item.path}
+              selected={isActive}
+              onClick={onItemClick}
+            >
+              <ListItemIcon>
+                <Icon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText
+                primary={item.label}
+                primaryTypographyProps={{
+                  fontSize: '0.9rem',
+                  fontWeight: isActive ? 600 : 500,
+                }}
+              />
+            </ListItemButton>
+          </ListItem>
+        );
+      })}
+    </List>
+  );
+
+  return (
+    <Box sx={{ mb: 1 }}>
+      {header}
+      {collapsible ? <Collapse in={open}>{list}</Collapse> : list}
+    </Box>
+  );
+}
 
 export default function AppLayout({ children }) {
   const location = useLocation();
@@ -59,15 +155,10 @@ export default function AppLayout({ children }) {
     navigate('/login');
   };
 
-  const currentItem = NAV_ITEMS.find((item) => item.path === location.pathname);
+  const currentItem = ALL_ITEMS.find((item) => item.path === location.pathname);
 
   const brand = (
-    <Stack
-      direction="row"
-      alignItems="center"
-      spacing={1.5}
-      sx={{ px: 2.5, py: 2 }}
-    >
+    <Stack direction="row" alignItems="center" spacing={1.5} sx={{ px: 2.5, py: 2 }}>
       <Box
         sx={{
           width: 36,
@@ -94,6 +185,10 @@ export default function AppLayout({ children }) {
     </Stack>
   );
 
+  const itemClickHandler = () => {
+    if (!isDesktop) setMobileOpen(false);
+  };
+
   const drawerContent = (
     <Box
       sx={{
@@ -106,33 +201,36 @@ export default function AppLayout({ children }) {
       {brand}
       <Divider />
       <Box sx={{ flex: 1, overflow: 'auto', py: 1 }}>
-        <List disablePadding>
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <ListItem key={item.path} disablePadding>
-                <ListItemButton
-                  component={Link}
-                  to={item.path}
-                  selected={isActive}
-                  onClick={() => !isDesktop && setMobileOpen(false)}
-                >
-                  <ListItemIcon>
-                    <Icon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.label}
-                    primaryTypographyProps={{
-                      fontSize: '0.9rem',
-                      fontWeight: isActive ? 600 : 500,
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            );
-          })}
-        </List>
+        <NavSection
+          title="Create"
+          items={PRIMARY_NAV}
+          active={location.pathname}
+          onItemClick={itemClickHandler}
+        />
+        <NavSection
+          title="Advanced"
+          items={ADVANCED_NAV}
+          active={location.pathname}
+          onItemClick={itemClickHandler}
+          collapsible
+          defaultOpen
+        />
+        <NavSection
+          title="Legacy"
+          items={LEGACY_NAV}
+          active={location.pathname}
+          onItemClick={itemClickHandler}
+          collapsible
+          defaultOpen={false}
+        />
+        <NavSection
+          title="Admin"
+          items={ADMIN_NAV}
+          active={location.pathname}
+          onItemClick={itemClickHandler}
+          collapsible
+          defaultOpen={false}
+        />
       </Box>
       <Divider />
       <Box sx={{ p: 2 }}>
@@ -164,11 +262,7 @@ export default function AppLayout({ children }) {
           </IconButton>
 
           <Box sx={{ flexGrow: 1 }}>
-            <Typography
-              variant="h6"
-              noWrap
-              sx={{ fontWeight: 600, lineHeight: 1.2 }}
-            >
+            <Typography variant="h6" noWrap sx={{ fontWeight: 600, lineHeight: 1.2 }}>
               {currentItem?.label || 'Syntexa'}
             </Typography>
             {currentItem && (

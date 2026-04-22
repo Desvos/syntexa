@@ -72,9 +72,59 @@ export const api = {
     update: (payload) => request('/settings', { method: 'PATCH', body: payload }),
     status: () => request('/settings/status'),
   },
+  // --- Phase 6 resources --------------------------------------------------
+  llmProviders: {
+    list: () => request('/llm-providers'),
+    create: (payload) => request('/llm-providers', { method: 'POST', body: payload }),
+    update: (id, payload) =>
+      request(`/llm-providers/${id}`, { method: 'PUT', body: payload }),
+    remove: (id) => request(`/llm-providers/${id}`, { method: 'DELETE' }),
+  },
+  agents: {
+    list: () => request('/agents'),
+    create: (payload) => request('/agents', { method: 'POST', body: payload }),
+    update: (id, payload) =>
+      request(`/agents/${id}`, { method: 'PUT', body: payload }),
+    remove: (id) => request(`/agents/${id}`, { method: 'DELETE' }),
+  },
+  repositories: {
+    list: () => request('/repositories'),
+    create: (payload) => request('/repositories', { method: 'POST', body: payload }),
+    update: (id, payload) =>
+      request(`/repositories/${id}`, { method: 'PUT', body: payload }),
+    remove: (id) => request(`/repositories/${id}`, { method: 'DELETE' }),
+    health: (id) => request(`/repositories/${id}/health`),
+  },
   swarms: {
+    // legacy monitoring endpoints (SwarmInstance table)
     active: () => request('/swarms/active'),
     completed: (limit = 50) => request(`/swarms/completed?limit=${limit}`),
     log: (id) => request(`/swarms/${id}/log`),
+    // first-class Swarm CRUD + run
+    list: (params = {}) => {
+      const qs = new URLSearchParams();
+      if (params.repository_id != null) qs.set('repository_id', params.repository_id);
+      if (params.status) qs.set('status', params.status);
+      const suffix = qs.toString() ? `?${qs.toString()}` : '';
+      return request(`/swarms${suffix}`);
+    },
+    get: (id) => request(`/swarms/${id}`),
+    create: (payload) => request('/swarms', { method: 'POST', body: payload }),
+    update: (id, payload) =>
+      request(`/swarms/${id}`, { method: 'PATCH', body: payload }),
+    remove: (id) => request(`/swarms/${id}`, { method: 'DELETE' }),
+    run: (id, payload = {}) =>
+      request(`/swarms/${id}/run`, { method: 'POST', body: payload }),
   },
 };
+
+// Supported values, mirrored from backend schemas:
+export const LLM_PROVIDER_TYPES = [
+  'anthropic',
+  'openai',
+  'openrouter',
+  'ollama',
+  'openai_compatible',
+];
+export const ORCHESTRATOR_STRATEGIES = ['auto', 'parallel', 'sequential'];
+export const SWARM_STATUSES = ['idle', 'running', 'completed', 'failed'];
