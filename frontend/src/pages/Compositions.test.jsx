@@ -84,11 +84,10 @@ describe('CompositionsPage', () => {
     await user.click(screen.getByRole('button', { name: /new composition/i }));
     await user.selectOptions(screen.getByLabelText(/task type/i), 'chore');
 
-    // Add coder then reviewer via RoleOrder picker.
-    await user.selectOptions(screen.getByLabelText(/add role/i), 'coder');
-    await user.click(screen.getByRole('button', { name: /^add$/i }));
-    await user.selectOptions(screen.getByLabelText(/add role/i), 'reviewer');
-    await user.click(screen.getByRole('button', { name: /^add$/i }));
+    // Add coder then reviewer via the free-form RoleOrder picker.
+    const addRoleInput = screen.getByLabelText(/add role/i);
+    await user.type(addRoleInput, 'coder{Enter}');
+    await user.type(addRoleInput, 'reviewer{Enter}');
 
     const maxRounds = screen.getByLabelText(/max rounds/i);
     await user.clear(maxRounds);
@@ -101,6 +100,39 @@ describe('CompositionsPage', () => {
         task_type: 'chore',
         roles: ['coder', 'reviewer'],
         max_rounds: 30,
+      });
+    });
+  });
+
+  it('accepts a free-form agent type not present in the existing roles list', async () => {
+    const user = userEvent.setup();
+    api.compositions.create.mockResolvedValue({
+      id: 12,
+      task_type: 'security',
+      roles: ['planner', 'security-auditor'],
+      max_rounds: 60,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    });
+
+    render(<CompositionsPage />);
+    await screen.findByTestId('composition-row-feature');
+
+    await user.click(screen.getByRole('button', { name: /new composition/i }));
+    await user.selectOptions(screen.getByLabelText(/task type/i), 'security');
+
+    const addRoleInput = screen.getByLabelText(/add role/i);
+    await user.type(addRoleInput, 'planner{Enter}');
+    // 'security-auditor' is NOT in ROLES — the picker must still accept it.
+    await user.type(addRoleInput, 'security-auditor{Enter}');
+
+    await user.click(screen.getByRole('button', { name: /create composition/i }));
+
+    await waitFor(() => {
+      expect(api.compositions.create).toHaveBeenCalledWith({
+        task_type: 'security',
+        roles: ['planner', 'security-auditor'],
+        max_rounds: 60,
       });
     });
   });

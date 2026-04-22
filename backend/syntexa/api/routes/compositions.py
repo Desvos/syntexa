@@ -2,9 +2,12 @@
 
 A composition binds a `task_type` to an ordered list of agent role names
 plus a `max_rounds` ceiling. The daemon looks up compositions by
-`task_type` at task-dispatch time. Referential integrity with
-`agent_roles.name` is enforced at the app layer (roles are JSON-encoded
-in the composition row, so the DB can't help us).
+`task_type` at task-dispatch time.
+
+Role names in a composition are free-form: any string that passes the
+pydantic slug check is accepted, and unknown names are materialized into
+placeholder AgentRole rows on save so the daemon can always resolve them.
+Users refine the placeholder's system_prompt later in the Roles page.
 """
 from __future__ import annotations
 
@@ -37,20 +40,37 @@ def _to_read(comp: SwarmComposition) -> SwarmCompositionRead:
     )
 
 
-def _assert_roles_exist(db: Session, role_names: list[str]) -> None:
-    """Every referenced role must exist in agent_roles. Duplicates in the
-    input are fine (parallel coders etc.) — we dedupe before querying."""
-    distinct = set(role_names)
+_PLACEHOLDER_PROMPT = (
+    "Placeholder system prompt for agent role '{name}'. "
+    "Edit this in the Roles page to describe the agent's responsibilities "
+    "and when it should hand off."
+)
+
+
+def _ensure_roles(db: Session, role_names: list[str]) -> None:
+    """Materialize any role names that don't yet exist in agent_roles.
+
+    Compositions are free-form over role names; the daemon still resolves
+    each name to an AgentRole at dispatch time, so we create a minimal
+    placeholder row for unknown names. Duplicates in the input are fine
+    — we dedupe before querying.
+    """
+    distinct = {n for n in role_names if n}
+    if not distinct:
+        return
     found = {
         r.name
         for r in db.query(AgentRole).filter(AgentRole.name.in_(distinct)).all()
     }
-    missing = sorted(distinct - found)
-    if missing:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Unknown roles: {', '.join(missing)}",
+    for name in sorted(distinct - found):
+        role = AgentRole(
+            name=name,
+            system_prompt=_PLACEHOLDER_PROMPT.format(name=name),
+            is_default=False,
         )
+        role.set_handoff_targets([])
+        db.add(role)
+    db.flush()
 
 
 @router.get("", response_model=SwarmCompositionList)
@@ -68,7 +88,7 @@ def create_composition(
     payload: SwarmCompositionCreate,
     db: Session = Depends(get_db),
 ) -> SwarmCompositionRead:
-    _assert_roles_exist(db, payload.roles)
+    _ensure_roles(db, payload.roles)
 
     comp = SwarmComposition(
         task_type=payload.task_type,
@@ -100,7 +120,7 @@ def update_composition(
         )
 
     if payload.roles is not None:
-        _assert_roles_exist(db, payload.roles)
+        _ensure_roles(db, payload.roles)
         comp.set_roles(payload.roles)
     if payload.max_rounds is not None:
         comp.max_rounds = payload.max_rounds

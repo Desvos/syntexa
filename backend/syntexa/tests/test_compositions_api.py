@@ -73,15 +73,37 @@ def test_create_composition_rejects_unknown_task_type(client: TestClient, auth_h
     assert resp.status_code == 422
 
 
-def test_create_composition_rejects_unknown_role(client: TestClient, auth_headers: dict) -> None:
+def test_create_composition_autocreates_unknown_role(client: TestClient, auth_headers: dict) -> None:
+    """Unknown role names are materialized as placeholder AgentRole rows so
+    the daemon can always resolve them. The composition is accepted as-is."""
     _seed_roles(("planner", "coder", "tester", "reviewer"))
     resp = client.post(
         "/api/v1/compositions",
-        json={"task_type": "feature", "roles": ["planner", "ghost"]},
+        json={"task_type": "feature", "roles": ["planner", "security-auditor"]},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["roles"] == ["planner", "security-auditor"]
+
+    roles = client.get("/api/v1/roles", headers=auth_headers).json()["roles"]
+    by_name = {r["name"]: r for r in roles}
+    assert "security-auditor" in by_name
+    created = by_name["security-auditor"]
+    assert created["is_default"] is False
+    assert created["system_prompt"]  # non-empty placeholder
+    assert created["handoff_targets"] == []
+
+
+def test_create_composition_rejects_non_slug_role(client: TestClient, auth_headers: dict) -> None:
+    """Free-form, yes — but names still have to be valid slugs because the
+    backend auto-creates an AgentRole for them."""
+    _seed_roles(("planner",))
+    resp = client.post(
+        "/api/v1/compositions",
+        json={"task_type": "feature", "roles": ["planner", "has spaces"]},
         headers=auth_headers,
     )
     assert resp.status_code == 422
-    assert "ghost" in resp.json()["detail"]
 
 
 def test_create_composition_rejects_empty_roles(client: TestClient, auth_headers: dict) -> None:
@@ -146,7 +168,7 @@ def test_update_composition_updates_max_rounds(client: TestClient, auth_headers:
     assert resp.json()["max_rounds"] == 20
 
 
-def test_update_composition_rejects_unknown_role(client: TestClient, auth_headers: dict) -> None:
+def test_update_composition_autocreates_unknown_role(client: TestClient, auth_headers: dict) -> None:
     _seed_roles(("planner", "coder", "tester", "reviewer"))
     created = client.post(
         "/api/v1/compositions",
@@ -155,10 +177,14 @@ def test_update_composition_rejects_unknown_role(client: TestClient, auth_header
     ).json()
     resp = client.put(
         f"/api/v1/compositions/{created['id']}",
-        json={"roles": ["planner", "ghost"]},
+        json={"roles": ["planner", "docs-writer"]},
         headers=auth_headers,
     )
-    assert resp.status_code == 422
+    assert resp.status_code == 200
+    assert resp.json()["roles"] == ["planner", "docs-writer"]
+
+    roles = client.get("/api/v1/roles", headers=auth_headers).json()["roles"]
+    assert any(r["name"] == "docs-writer" for r in roles)
 
 
 def test_update_missing_composition_returns_404(client: TestClient, auth_headers: dict) -> None:

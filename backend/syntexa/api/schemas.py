@@ -143,6 +143,26 @@ class AgentRoleList(BaseModel):
 VALID_TASK_TYPES: tuple[str, ...] = ("feature", "fix", "refactor", "security", "chore")
 
 
+def _normalize_role_names(names: list[str]) -> list[str]:
+    """Strip and lowercase each name; reject empty or non-slug entries.
+
+    Compositions accept free-form role names, but the string still has to
+    be a valid AgentRole slug because `_ensure_roles` materializes unknown
+    names into agent_roles rows that must round-trip through the Roles API.
+    """
+    cleaned: list[str] = []
+    for raw in names:
+        name = (raw or "").strip()
+        if not name:
+            raise ValueError("role names cannot be empty")
+        if not all(c.isalnum() or c in ("-", "_") for c in name):
+            raise ValueError(
+                f"role name '{raw}' must be alphanumeric with - or _"
+            )
+        cleaned.append(name.lower())
+    return cleaned
+
+
 class SwarmCompositionCreate(BaseModel):
     task_type: str = Field(..., min_length=1, max_length=32)
     roles: list[str] = Field(..., min_length=1)
@@ -160,14 +180,11 @@ class SwarmCompositionCreate(BaseModel):
 
     @field_validator("roles")
     @classmethod
-    def _roles_non_empty(cls, v: list[str]) -> list[str]:
+    def _roles_are_slugs(cls, v: list[str]) -> list[str]:
         # Order matters (first role = entry point), but duplicates are
         # allowed — a composition can legitimately include two coders for
         # parallel work (see DEFAULT_COMPOSITIONS "refactor").
-        cleaned = [r.strip() for r in v]
-        if any(not r for r in cleaned):
-            raise ValueError("role names cannot be empty")
-        return cleaned
+        return _normalize_role_names(v)
 
 
 class SwarmCompositionUpdate(BaseModel):
@@ -179,13 +196,10 @@ class SwarmCompositionUpdate(BaseModel):
 
     @field_validator("roles")
     @classmethod
-    def _roles_non_empty(cls, v: list[str] | None) -> list[str] | None:
+    def _roles_are_slugs(cls, v: list[str] | None) -> list[str] | None:
         if v is None:
             return None
-        cleaned = [r.strip() for r in v]
-        if any(not r for r in cleaned):
-            raise ValueError("role names cannot be empty")
-        return cleaned
+        return _normalize_role_names(v)
 
 
 class SwarmCompositionRead(BaseModel):

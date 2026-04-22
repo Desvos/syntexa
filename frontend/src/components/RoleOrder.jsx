@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import {
+  Autocomplete,
   Box,
-  Button,
   Chip,
-  FormControl,
   IconButton,
-  InputLabel,
   List,
   ListItem,
-  MenuItem,
   Paper,
-  Select,
+  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
@@ -20,13 +17,14 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 
 /**
- * Drag-to-reorder list of role names with MUI.
+ * Ordered list of role names with free-form picker.
  *
- * Duplicates are intentionally allowed — e.g. the refactor default has two
- * coders for parallel work. Each row carries its own list index as the React key
- * so duplicates don't collide.
+ * Any agent-type name can be typed — existing roles are surfaced as suggestions
+ * but the user is not constrained to them. Unknown names are auto-materialized
+ * into AgentRole rows by the backend on save.
  *
- * Uses keyboard controls (up/down arrows) instead of drag for simplicity.
+ * Duplicates are intentionally allowed (e.g. two coders for parallel work);
+ * the list index is the React key so duplicates don't collide.
  */
 export default function RoleOrder({ value = [], available = [], onChange, disabled }) {
   const [pickerValue, setPickerValue] = useState('');
@@ -45,17 +43,15 @@ export default function RoleOrder({ value = [], available = [], onChange, disabl
     onChange(next);
   };
 
-  const add = () => {
-    if (!pickerValue) return;
-    onChange([...value, pickerValue]);
+  const addName = (raw) => {
+    const name = (raw || '').trim();
+    if (!name) return;
+    onChange([...value, name]);
     setPickerValue('');
   };
 
-  const availableOptions = available.filter((a) => !value.includes(a));
-
   return (
     <Box aria-label="role order">
-      {/* Current order list */}
       {value.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', py: 2 }}>
           No roles yet. Add at least one — the first is the swarm entry point.
@@ -113,7 +109,7 @@ export default function RoleOrder({ value = [], available = [], onChange, disabl
                   </Box>
                 }
                 sx={{
-                  pr: 14, // Make room for buttons
+                  pr: 14,
                   bgcolor: i === 0 ? 'action.selected' : 'inherit',
                 }}
               >
@@ -132,37 +128,43 @@ export default function RoleOrder({ value = [], available = [], onChange, disabl
         </Paper>
       )}
 
-      {/* Add role controls */}
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-        <FormControl fullWidth size="small">
-          <InputLabel id="add-role-label">Add Role</InputLabel>
-          <Select
-            labelId="add-role-label"
-            id="add-role"
-            value={pickerValue}
-            label="Add Role"
-            onChange={(e) => setPickerValue(e.target.value)}
-            disabled={disabled || availableOptions.length === 0}
-          >
-            <MenuItem value="" disabled>
-              {availableOptions.length === 0 ? 'No roles available' : 'Select role...'}
-            </MenuItem>
-            {availableOptions.map((name) => (
-              <MenuItem key={name} value={name}>{name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={add}
-          disabled={disabled || !pickerValue}
-          startIcon={<AddIcon />}
-          sx={{ mt: 0.5 }}
+        <Autocomplete
+          freeSolo
+          fullWidth
+          options={available}
+          inputValue={pickerValue}
+          onInputChange={(_, v) => setPickerValue(v)}
+          value={null}
+          onChange={(_, v) => {
+            if (typeof v === 'string') addName(v);
+          }}
+          disabled={disabled}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Add Role"
+              placeholder="Type any agent type (e.g. planner, security-auditor, docs-writer)"
+              helperText="Any name is valid — unknown types are created automatically on save."
+              size="small"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  addName(pickerValue);
+                }
+              }}
+            />
+          )}
+        />
+        <IconButton
+          onClick={() => addName(pickerValue)}
+          disabled={disabled || !pickerValue.trim()}
+          color="primary"
+          size="large"
+          aria-label="add role"
         >
-          Add
-        </Button>
+          <AddIcon />
+        </IconButton>
       </Box>
     </Box>
   );
