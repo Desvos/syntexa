@@ -8,7 +8,6 @@ from __future__ import annotations
 import logging
 import signal
 import sys
-from datetime import datetime, timezone
 
 from syntexa.adapters.base import (
     LocalRepositoryAdapter,
@@ -28,7 +27,7 @@ from syntexa.daemon.poller import Poller
 from syntexa.daemon.roles import DEFAULT_ROLES, RoleConfig
 from syntexa.daemon.swarm import SwarmContext, SwarmEngine, SwarmResult
 from syntexa.daemon.workspace import Workspace, branch_name_for
-from syntexa.models import ExternalCredential, SwarmInstance, init_engine, session_scope
+from syntexa.models import ExternalCredential, init_engine, session_scope
 
 logger = logging.getLogger(__name__)
 
@@ -93,8 +92,6 @@ def _run_swarm_for_task(
         base_branch=settings.base_branch,
     )
 
-    _record_swarm_start(ctx)
-
     try:
         pm.update_status(task.id, "in_progress")
     except Exception:
@@ -107,8 +104,7 @@ def _run_swarm_for_task(
         logger.exception("Swarm setup failed for task %s", task.id)
         result = SwarmResult(status="failed", conversation_log="", error=str(exc))
 
-    pr_url = delivery.deliver(ctx, result)
-    _record_swarm_end(ctx, result, pr_url)
+    delivery.deliver(ctx, result)
     workspace.cleanup(branch)
 
 
@@ -122,39 +118,6 @@ def _roles_for(role_names: tuple[str, ...]) -> list[RoleConfig]:
             continue
         resolved.append(role)
     return resolved
-
-
-def _record_swarm_start(ctx: SwarmContext) -> None:
-    try:
-        with session_scope() as session:
-            session.add(
-                SwarmInstance(
-                    task_id=ctx.task_id,
-                    task_name=ctx.task_name,
-                    task_type=ctx.task_type,
-                    branch=ctx.branch,
-                    status="running",
-                    started_at=datetime.now(timezone.utc),
-                )
-            )
-    except Exception:
-        logger.exception("Could not persist swarm start for %s", ctx.task_id)
-
-
-def _record_swarm_end(ctx: SwarmContext, result: SwarmResult, pr_url: str | None) -> None:
-    try:
-        with session_scope() as session:
-            instance = (
-                session.query(SwarmInstance).filter_by(task_id=ctx.task_id).one_or_none()
-            )
-            if instance is None:
-                return
-            instance.status = result.status
-            instance.conversation_log = result.conversation_log
-            instance.pr_url = pr_url
-            instance.completed_at = datetime.now(timezone.utc)
-    except Exception:
-        logger.exception("Could not persist swarm end for %s", ctx.task_id)
 
 
 def _get_clickup_credentials(settings: Settings) -> tuple[str | None, str | None] | None:

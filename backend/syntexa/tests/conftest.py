@@ -42,15 +42,12 @@ def db_session(test_db_path: str) -> Generator[Session, None, None]:
     # Import models first to register them with Base.metadata
     from syntexa.models import (  # noqa: F401 - registers all models
         Agent,
-        AgentRole,
         ExternalCredential,
         LLMProvider,
         ProcessedEvent,
         Repository,
         Swarm,
         SwarmAgent,
-        SwarmComposition,
-        SwarmInstance,
         SystemSetting,
         User,
     )
@@ -74,15 +71,12 @@ def client(test_db_path: str) -> Generator[TestClient, None, None]:
     # Import models first to register them with Base.metadata
     from syntexa.models import (  # noqa: F401 - registers all models
         Agent,
-        AgentRole,
         ExternalCredential,
         LLMProvider,
         ProcessedEvent,
         Repository,
         Swarm,
         SwarmAgent,
-        SwarmComposition,
-        SwarmInstance,
         SystemSetting,
         User,
     )

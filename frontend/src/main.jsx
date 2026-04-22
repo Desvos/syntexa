@@ -2,10 +2,7 @@ import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 
-import CompositionsPage from './pages/Compositions.jsx';
 import LoginPage from './pages/Login.jsx';
-import MonitorPage from './pages/Monitor.jsx';
-import RolesPage from './pages/Roles.jsx';
 import SettingsPage from './pages/Settings.jsx';
 import UsersPage from './pages/Users.jsx';
 import WizardPage from './pages/Wizard.jsx';
@@ -91,30 +88,6 @@ function App() {
           element={
             <AuthenticatedShell>
               <SwarmsPage />
-            </AuthenticatedShell>
-          }
-        />
-        <Route
-          path="/roles"
-          element={
-            <AuthenticatedShell>
-              <RolesPage />
-            </AuthenticatedShell>
-          }
-        />
-        <Route
-          path="/compositions"
-          element={
-            <AuthenticatedShell>
-              <CompositionsPage />
-            </AuthenticatedShell>
-          }
-        />
-        <Route
-          path="/monitor"
-          element={
-            <AuthenticatedShell>
-              <MonitorPage />
             </AuthenticatedShell>
           }
         />

@@ -20,16 +20,13 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import PeopleIcon from '@mui/icons-material/People';
-import GroupWorkIcon from '@mui/icons-material/GroupWork';
 import SettingsIcon from '@mui/icons-material/Settings';
 import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
-import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import HubIcon from '@mui/icons-material/Hub';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import StorageIcon from '@mui/icons-material/Storage';
 import FolderIcon from '@mui/icons-material/Folder';
 import MemoryIcon from '@mui/icons-material/Memory';
-import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import UserMenu from './UserMenu.jsx';
@@ -45,12 +42,6 @@ const ADVANCED_NAV = [
   { label: 'Agents', path: '/agents', icon: PeopleIcon },
   { label: 'Repositories', path: '/repositories', icon: FolderIcon },
   { label: 'Swarms', path: '/swarms', icon: StorageIcon },
-  { label: 'Monitor', path: '/monitor', icon: MonitorHeartIcon },
-];
-
-const LEGACY_NAV = [
-  { label: 'Roles (Legacy)', path: '/roles', icon: PeopleIcon },
-  { label: 'Compositions (Legacy)', path: '/compositions', icon: GroupWorkIcon },
 ];
 
 const ADMIN_NAV = [
@@ -61,7 +52,6 @@ const ADMIN_NAV = [
 const ALL_ITEMS = [
   ...PRIMARY_NAV,
   ...ADVANCED_NAV,
-  ...LEGACY_NAV,
   ...ADMIN_NAV,
 ];
 
@@ -214,14 +204,6 @@ export default function AppLayout({ children }) {
           onItemClick={itemClickHandler}
           collapsible
           defaultOpen
-        />
-        <NavSection
-          title="Legacy"
-          items={LEGACY_NAV}
-          active={location.pathname}
-          onItemClick={itemClickHandler}
-          collapsible
-          defaultOpen={false}
         />
         <NavSection
           title="Admin"

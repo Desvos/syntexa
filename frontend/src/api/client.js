@@ -55,18 +55,6 @@ export class ApiError extends Error {
 }
 
 export const api = {
-  roles: {
-    list: () => request('/roles'),
-    create: (payload) => request('/roles', { method: 'POST', body: payload }),
-    update: (id, payload) => request(`/roles/${id}`, { method: 'PUT', body: payload }),
-    remove: (id) => request(`/roles/${id}`, { method: 'DELETE' }),
-  },
-  compositions: {
-    list: () => request('/compositions'),
-    create: (payload) => request('/compositions', { method: 'POST', body: payload }),
-    update: (id, payload) => request(`/compositions/${id}`, { method: 'PUT', body: payload }),
-    remove: (id) => request(`/compositions/${id}`, { method: 'DELETE' }),
-  },
   settings: {
     get: () => request('/settings'),
     update: (payload) => request('/settings', { method: 'PATCH', body: payload }),
@@ -96,11 +84,6 @@ export const api = {
     health: (id) => request(`/repositories/${id}/health`),
   },
   swarms: {
-    // legacy monitoring endpoints (SwarmInstance table)
-    active: () => request('/swarms/active'),
-    completed: (limit = 50) => request(`/swarms/completed?limit=${limit}`),
-    log: (id) => request(`/swarms/${id}/log`),
-    // first-class Swarm CRUD + run
     list: (params = {}) => {
       const qs = new URLSearchParams();
       if (params.repository_id != null) qs.set('repository_id', params.repository_id);

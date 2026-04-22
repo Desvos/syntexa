@@ -1,14 +1,8 @@
-"""CRUD endpoints for first-class Swarms, plus legacy SwarmInstance monitoring.
+"""CRUD endpoints for first-class Swarms.
 
 A Swarm is one running swarm-job instance attached to a repository, scoped
-to a task. The CRUD surface here owns the new ``swarms`` table; the legacy
-``/swarms/active``, ``/swarms/completed``, and ``/swarms/{id}/log`` endpoints
-operate on the separate ``swarm_instances`` table and are kept in place for
-monitoring until Phase 8 handles the cleanup.
-
-Route-registration order matters: literal path segments (``/active``,
-``/completed``) are declared BEFORE the parameterised ``/{swarm_id}`` routes
-so FastAPI matches them even though ``swarm_id`` is typed ``int``.
+to a task. The CRUD surface here owns the ``swarms`` table; orchestration
+state (running/completed/failed) lives on ``Swarm.status`` itself.
 """
 from __future__ import annotations
 
@@ -22,16 +16,13 @@ from syntexa.api.dependencies import get_db
 from syntexa.api.schemas import (
     AgentRead,
     SwarmCreate,
-    SwarmInstanceList,
-    SwarmInstanceRead,
     SwarmList,
-    SwarmLogResponse,
     SwarmRead,
     SwarmRunRequest,
     SwarmRunResult,
     SwarmUpdate,
 )
-from syntexa.models import Agent, Repository, Swarm, SwarmAgent, SwarmInstance
+from syntexa.models import Agent, Repository, Swarm, SwarmAgent
 from syntexa.orchestrator import run_swarm as run_swarm_impl
 from syntexa.orchestrator.executor import (
     SwarmAlreadyRunningError,
@@ -107,43 +98,6 @@ def _replace_membership(
     )
     for position, aid in enumerate(agent_ids):
         db.add(SwarmAgent(swarm_id=swarm.id, agent_id=aid, position=position))
-
-
-# --- legacy SwarmInstance monitoring (kept until Phase 8) ----------------
-
-
-@router.get("/active", response_model=SwarmInstanceList)
-def list_active_swarms(
-    db: Session = Depends(get_db),
-) -> SwarmInstanceList:
-    """List all currently running swarms (legacy SwarmInstance)."""
-    swarms = (
-        db.query(SwarmInstance)
-        .filter(SwarmInstance.status == "running")
-        .order_by(SwarmInstance.started_at.asc())
-        .all()
-    )
-    return SwarmInstanceList(
-        swarms=[SwarmInstanceRead.model_validate(s) for s in swarms]
-    )
-
-
-@router.get("/completed", response_model=SwarmInstanceList)
-def list_completed_swarms(
-    limit: int = Query(default=50, ge=1, le=200),
-    db: Session = Depends(get_db),
-) -> SwarmInstanceList:
-    """List recently completed swarms (legacy SwarmInstance)."""
-    swarms = (
-        db.query(SwarmInstance)
-        .filter(SwarmInstance.status.in_(["completed", "failed", "timeout"]))
-        .order_by(SwarmInstance.completed_at.desc().nullslast())
-        .limit(limit)
-        .all()
-    )
-    return SwarmInstanceList(
-        swarms=[SwarmInstanceRead.model_validate(s) for s in swarms]
-    )
 
 
 # --- CRUD on the first-class Swarm entity --------------------------------
@@ -348,31 +302,4 @@ def run_swarm_route(
         agent_outputs={str(k): v for k, v in result.agent_outputs.items()},
         success=result.success,
         error=result.error,
-    )
-
-
-# --- legacy log endpoint (kept until Phase 8) ----------------------------
-
-
-@router.get("/{swarm_id}/log", response_model=SwarmLogResponse)
-def get_swarm_log(
-    swarm_id: int,
-    db: Session = Depends(get_db),
-) -> SwarmLogResponse:
-    """Get the conversation log for a legacy SwarmInstance."""
-    swarm = db.get(SwarmInstance, swarm_id)
-    if swarm is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Swarm with id {swarm_id} not found",
-        )
-
-    return SwarmLogResponse(
-        task_id=swarm.task_id,
-        task_name=swarm.task_name,
-        status=swarm.status,
-        log=swarm.conversation_log,
-        pr_url=swarm.pr_url,
-        started_at=swarm.started_at,
-        completed_at=swarm.completed_at,
     )

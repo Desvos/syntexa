@@ -58,24 +58,14 @@ class TestLogout:
 class TestProtectedRoutes:
     """Tests that protected routes require authentication."""
 
-    def test_roles_requires_auth(self, client: TestClient) -> None:
-        """Test GET /roles without auth returns 401."""
-        response = client.get("/api/v1/roles")
-        assert response.status_code == 401
-
-    def test_compositions_requires_auth(self, client: TestClient) -> None:
-        """Test GET /compositions without auth returns 401."""
-        response = client.get("/api/v1/compositions")
-        assert response.status_code == 401
-
     def test_settings_requires_auth(self, client: TestClient) -> None:
         """Test GET /settings without auth returns 401."""
         response = client.get("/api/v1/settings")
         assert response.status_code == 401
 
     def test_swarms_requires_auth(self, client: TestClient) -> None:
-        """Test GET /swarms/active without auth returns 401."""
-        response = client.get("/api/v1/swarms/active")
+        """Test GET /swarms without auth returns 401."""
+        response = client.get("/api/v1/swarms")
         assert response.status_code == 401
 
     def test_users_requires_auth(self, client: TestClient) -> None:
@@ -86,7 +76,7 @@ class TestProtectedRoutes:
     def test_access_with_invalid_token(self, client: TestClient) -> None:
         """Test accessing protected routes with invalid token returns 401."""
         response = client.get(
-            "/api/v1/roles",
+            "/api/v1/swarms",
             headers={"Authorization": "Bearer invalid-token-123"},
         )
         assert response.status_code == 401
