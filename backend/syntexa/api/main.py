@@ -14,6 +14,7 @@ from syntexa.api.routes import agents as agents_routes
 from syntexa.api.routes import auth as auth_routes
 from syntexa.api.routes import compositions as compositions_routes
 from syntexa.api.routes import credentials as credentials_routes
+from syntexa.api.routes import listeners as listeners_routes
 from syntexa.api.routes import llm_providers as llm_providers_routes
 from syntexa.api.routes import repositories as repositories_routes
 from syntexa.api.routes import roles as roles_routes
@@ -97,6 +98,11 @@ def create_app() -> FastAPI:
     )
     app.include_router(
         repositories_routes.router,
+        prefix=API_PREFIX,
+        dependencies=[Depends(require_auth)],
+    )
+    app.include_router(
+        listeners_routes.router,
         prefix=API_PREFIX,
         dependencies=[Depends(require_auth)],
     )

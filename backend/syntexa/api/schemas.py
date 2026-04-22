@@ -485,6 +485,7 @@ class RepositoryCreate(BaseModel):
     remote_url: str | None = Field(default=None, max_length=512)
     default_branch: str = Field(default="main", min_length=1, max_length=128)
     clickup_list_id: str | None = Field(default=None, max_length=64)
+    clickup_trigger_tag: str | None = Field(default=None, max_length=64)
     is_active: bool = Field(default=True)
 
     @field_validator("name")
@@ -522,6 +523,7 @@ class RepositoryUpdate(BaseModel):
     remote_url: str | None = Field(default=None, max_length=512)
     default_branch: str | None = Field(default=None, min_length=1, max_length=128)
     clickup_list_id: str | None = Field(default=None, max_length=64)
+    clickup_trigger_tag: str | None = Field(default=None, max_length=64)
     is_active: bool | None = None
 
     @field_validator("path")
@@ -554,6 +556,7 @@ class RepositoryRead(BaseModel):
     remote_url: str | None
     default_branch: str
     clickup_list_id: str | None
+    clickup_trigger_tag: str | None = None
     is_active: bool
     created_at: datetime
     updated_at: datetime

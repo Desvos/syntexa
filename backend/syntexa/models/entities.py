@@ -228,6 +228,7 @@ class Repository(Base):
         String(128), nullable=False, default="main"
     )
     clickup_list_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    clickup_trigger_tag: Mapped[str | None] = mapped_column(String(64), nullable=True)
     is_active: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, index=True
     )
@@ -328,3 +329,27 @@ class SwarmAgent(Base):
         primary_key=True,
     )
     position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class ProcessedEvent(Base):
+    """Dedup table for inbound listener events.
+
+    Each listener emits ``InboundEvent`` rows keyed by (source, external_id).
+    Before creating a swarm, the listener checks this table — if a row
+    already exists, the event is skipped. ``swarm_id`` is nullable because
+    we want to mark an event as processed even if swarm creation blew up
+    (prevents infinite retry loops against a poison-pill event).
+    """
+
+    __tablename__ = "processed_events"
+
+    source: Mapped[str] = mapped_column(String(16), primary_key=True)
+    external_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    processed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utcnow
+    )
+    swarm_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("swarms.id", ondelete="SET NULL"),
+        nullable=True,
+    )

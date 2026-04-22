@@ -40,6 +40,7 @@ def _to_read(repo: Repository) -> RepositoryRead:
         remote_url=repo.remote_url,
         default_branch=repo.default_branch,
         clickup_list_id=repo.clickup_list_id,
+        clickup_trigger_tag=repo.clickup_trigger_tag,
         is_active=repo.is_active,
         created_at=repo.created_at,
         updated_at=repo.updated_at,
@@ -94,6 +95,7 @@ def create_repository(
         remote_url=payload.remote_url,
         default_branch=payload.default_branch,
         clickup_list_id=payload.clickup_list_id,
+        clickup_trigger_tag=payload.clickup_trigger_tag,
         is_active=payload.is_active,
     )
     db.add(repo)
@@ -145,6 +147,8 @@ def update_repository(
         repo.default_branch = payload.default_branch
     if payload.clickup_list_id is not None:
         repo.clickup_list_id = payload.clickup_list_id
+    if payload.clickup_trigger_tag is not None:
+        repo.clickup_trigger_tag = payload.clickup_trigger_tag
     if payload.is_active is not None:
         repo.is_active = payload.is_active
     repo.updated_at = datetime.now(timezone.utc)
