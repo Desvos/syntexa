@@ -60,7 +60,20 @@ export default function LoginForm({ onSuccess }) {
   };
 
   return (
-    <Card elevation={4} sx={{ maxWidth: 400, width: '100%', mx: 'auto' }}>
+    <Card
+      sx={{
+        width: '100%',
+        backdropFilter: 'blur(10px)',
+        backgroundColor: (t) =>
+          t.palette.mode === 'dark'
+            ? 'rgba(17, 24, 39, 0.85)'
+            : 'rgba(255, 255, 255, 0.85)',
+        boxShadow: (t) =>
+          t.palette.mode === 'dark'
+            ? '0 24px 48px rgba(0,0,0,0.5)'
+            : '0 24px 48px rgba(99,102,241,0.18)',
+      }}
+    >
       <CardHeader
         title={
           <Typography variant="h5" component="h1" align="center" gutterBottom>

@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Container,
   Typography,
   Snackbar,
 } from '@mui/material';
@@ -112,7 +111,7 @@ export default function MonitorPage() {
   }, [loadAll, loadActiveSwarms]);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 3 }}>
+    <Box sx={{ width: '100%' }}>
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 500, mb: 1 }}>
@@ -177,6 +176,6 @@ export default function MonitorPage() {
           {error}
         </Alert>
       </Snackbar>
-    </Container>
+    </Box>
   );
 }

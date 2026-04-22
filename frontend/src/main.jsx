@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 import CompositionsPage from './pages/Compositions.jsx';
 import LoginPage from './pages/Login.jsx';
@@ -8,152 +8,96 @@ import MonitorPage from './pages/Monitor.jsx';
 import RolesPage from './pages/Roles.jsx';
 import SettingsPage from './pages/Settings.jsx';
 import UsersPage from './pages/Users.jsx';
+import AppLayout from './components/AppLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { ThemeContextProvider } from './components/ThemeContextProvider.jsx';
-import { isAuthenticated, authApi, setSessionExpiryHandler, clearSessionExpiryHandler } from './api/auth.js';
+import { setSessionExpiryHandler, clearSessionExpiryHandler } from './api/auth.js';
 import { setAuthErrorHandler } from './api/client.js';
 import './styles/base.css';
 
-function Navigation() {
+function AuthenticatedShell({ children }) {
+  return (
+    <ProtectedRoute>
+      <AppLayout>{children}</AppLayout>
+    </ProtectedRoute>
+  );
+}
+
+function AuthBootstrap() {
   const location = useLocation();
-  const [authenticated, setAuthenticated] = useState(isAuthenticated());
 
   useEffect(() => {
-    setAuthenticated(isAuthenticated());
-
-    // Set up session expiry handler
-    if (authenticated) {
-      setSessionExpiryHandler(() => {
-        setAuthenticated(false);
-        window.location.href = '/login';
-      });
-    }
-
-    // Set up 401 handler for API calls with invalid token
-    setAuthErrorHandler(() => {
-      setAuthenticated(false);
+    setSessionExpiryHandler(() => {
+      window.location.href = '/login';
     });
-
+    setAuthErrorHandler(() => {
+      if (location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    });
     return () => {
       clearSessionExpiryHandler();
     };
-  }, [authenticated]);
+  }, [location.pathname]);
 
-  const handleLogout = async () => {
-    await authApi.logout();
-    setAuthenticated(false);
-  };
-
-  // Don't show nav on login page
-  if (location.pathname === '/login') {
-    return null;
-  }
-
-  // Don't show nav if not authenticated
-  if (!authenticated) {
-    return null;
-  }
-
-  const isActive = (path) => location.pathname === path;
-
-  return (
-    <nav className="main-nav">
-      <div className="nav-brand">Syntexa</div>
-      <ul className="nav-links">
-        <li>
-          <Link to="/roles" className={isActive('/roles') ? 'active' : ''}>
-            Agent Roles
-          </Link>
-        </li>
-        <li>
-          <Link to="/compositions" className={isActive('/compositions') ? 'active' : ''}>
-            Compositions
-          </Link>
-        </li>
-        <li>
-          <Link to="/monitor" className={isActive('/monitor') ? 'active' : ''}>
-            Monitor
-          </Link>
-        </li>
-        <li>
-          <Link to="/users" className={isActive('/users') ? 'active' : ''}>
-            Users
-          </Link>
-        </li>
-        <li>
-          <Link to="/settings" className={isActive('/settings') ? 'active' : ''}>
-            Settings
-          </Link>
-        </li>
-      </ul>
-      <div className="nav-actions">
-        <button className="btn btn-secondary" onClick={handleLogout}>
-          Logout
-        </button>
-      </div>
-    </nav>
-  );
+  return null;
 }
 
 function App() {
   return (
     <BrowserRouter>
-      <div className="app-container">
-        <Navigation />
-        <main className="main-content">
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Navigate to="/roles" replace />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/roles"
-              element={
-                <ProtectedRoute>
-                  <RolesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/compositions"
-              element={
-                <ProtectedRoute>
-                  <CompositionsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/monitor"
-              element={
-                <ProtectedRoute>
-                  <MonitorPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/users"
-              element={
-                <ProtectedRoute>
-                  <UsersPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <SettingsPage />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </main>
-      </div>
+      <AuthBootstrap />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/"
+          element={
+            <AuthenticatedShell>
+              <Navigate to="/roles" replace />
+            </AuthenticatedShell>
+          }
+        />
+        <Route
+          path="/roles"
+          element={
+            <AuthenticatedShell>
+              <RolesPage />
+            </AuthenticatedShell>
+          }
+        />
+        <Route
+          path="/compositions"
+          element={
+            <AuthenticatedShell>
+              <CompositionsPage />
+            </AuthenticatedShell>
+          }
+        />
+        <Route
+          path="/monitor"
+          element={
+            <AuthenticatedShell>
+              <MonitorPage />
+            </AuthenticatedShell>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <AuthenticatedShell>
+              <UsersPage />
+            </AuthenticatedShell>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <AuthenticatedShell>
+              <SettingsPage />
+            </AuthenticatedShell>
+          }
+        />
+      </Routes>
     </BrowserRouter>
   );
 }

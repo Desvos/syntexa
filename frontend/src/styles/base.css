@@ -1,31 +1,4 @@
-/**
- * Minimal CSS reset - MUI handles most styling
- * Keep only essential accessibility/reset styles
- */
-
-/* CSS Reset for MUI - ensures clean slate */
-* {
-  box-sizing: border-box;
-}
-
-/* Remove default margins */
-body {
-  margin: 0;
-}
-
-/* Ensure proper font smoothing */
-html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Accessibility: Ensure focus is visible (MUI handles colors, we ensure outline) */
-:focus-visible {
-  outline: 2px solid;
-  outline-offset: 2px;
-}
-
-/* Reduce motion for users who prefer it */
+/* MUI's CssBaseline handles reset + font smoothing. Keep only reduced-motion. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -34,4 +7,8 @@ html {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+:root {
+  color-scheme: light dark;
 }
