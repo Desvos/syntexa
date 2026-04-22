@@ -94,6 +94,11 @@ export default function WizardPage() {
   const [strategy, setStrategy] = useState('auto');
   const [manualOrder, setManualOrder] = useState([]);
 
+  // Presets (Phase 9)
+  const [swarmTemplates, setSwarmTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [seedingAgents, setSeedingAgents] = useState(false);
+
   // Submission state
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -103,14 +108,16 @@ export default function WizardPage() {
   const loadAll = useCallback(async () => {
     setLoadError(null);
     try {
-      const [repoData, agentData, providerData] = await Promise.all([
+      const [repoData, agentData, providerData, templates] = await Promise.all([
         api.repositories.list(),
         api.agents.list(),
         api.llmProviders.list(),
+        api.presets.swarmTemplates().catch(() => []),
       ]);
       setRepositories(repoData.repositories || []);
       setAgents(agentData.agents || []);
       setProviders(providerData.providers || []);
+      setSwarmTemplates(Array.isArray(templates) ? templates : []);
     } catch (err) {
       setLoadError(err.message || 'Failed to load wizard data.');
     }
@@ -208,6 +215,54 @@ export default function WizardPage() {
     }
   }
 
+  // --- preset helpers ----------------------------------------------------
+
+  function applySwarmTemplate(template) {
+    setSelectedTemplate(template.name);
+    // Pre-select agents that match preset names; ignore templates that
+    // reference agents the user hasn't seeded yet.
+    const matchedIds = (template.agent_names || [])
+      .map((n) => agents.find((a) => a.name === n)?.id)
+      .filter((id) => id != null);
+    setSelectedAgentIds(matchedIds);
+    setStrategy(template.orchestrator_strategy || 'auto');
+  }
+
+  async function handleSeedPresetAgents() {
+    const providerId = providers[0]?.id;
+    if (!providerId) {
+      setLoadError(
+        'Add an LLM provider first (Advanced → LLM Providers), then seed presets.',
+      );
+      return;
+    }
+    setSeedingAgents(true);
+    try {
+      const presetAgents = await api.presets.agents();
+      const created = [];
+      for (const preset of presetAgents) {
+        const existing = agents.find((a) => a.name === preset.name);
+        if (existing) {
+          created.push(existing);
+          continue;
+        }
+        const resp = await api.presets.apply({
+          kind: 'agent',
+          preset_name: preset.name,
+          overrides: { provider_id: providerId },
+        });
+        if (resp?.agent) created.push(resp.agent);
+      }
+      // Refresh agent list from server
+      const agentData = await api.agents.list();
+      setAgents(agentData.agents || []);
+    } catch (err) {
+      setLoadError(err.message || 'Failed to seed preset agents.');
+    } finally {
+      setSeedingAgents(false);
+    }
+  }
+
   function moveOrder(idx, dir) {
     setManualOrder((order) => {
       const next = [...order];
@@ -289,6 +344,29 @@ export default function WizardPage() {
     // Step 2: Task
     <Card key="task" variant="outlined" sx={{ mt: 3 }}>
       <CardContent>
+        {swarmTemplates.length > 0 && (
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Start from a swarm template
+            </Typography>
+            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+              {swarmTemplates.map((tpl) => (
+                <Chip
+                  key={tpl.name}
+                  label={tpl.name}
+                  title={tpl.description}
+                  onClick={() => applySwarmTemplate(tpl)}
+                  color={selectedTemplate === tpl.name ? 'primary' : 'default'}
+                  variant={selectedTemplate === tpl.name ? 'filled' : 'outlined'}
+                  clickable
+                />
+              ))}
+            </Stack>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              Templates pre-select agents and strategy for Step 3.
+            </Typography>
+          </Box>
+        )}
         <Typography variant="h6" gutterBottom>
           What do you want to build?
         </Typography>
@@ -326,8 +404,31 @@ export default function WizardPage() {
         </Typography>
         {agents.length === 0 && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            No agents yet. Create one below or in the Advanced section.
+            No agents yet. Seed the built-in presets or create one below.
           </Alert>
+        )}
+        {agents.length === 0 && (
+          <Box sx={{ mb: 2 }}>
+            <Button
+              variant="contained"
+              onClick={handleSeedPresetAgents}
+              disabled={seedingAgents || providers.length === 0}
+              startIcon={
+                seedingAgents ? (
+                  <CircularProgress size={14} color="inherit" />
+                ) : (
+                  <AddIcon />
+                )
+              }
+            >
+              {seedingAgents ? 'Seeding…' : 'Seed preset agents'}
+            </Button>
+            {providers.length === 0 && (
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
+                Add an LLM provider first.
+              </Typography>
+            )}
+          </Box>
         )}
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           {agents.map((agent) => {

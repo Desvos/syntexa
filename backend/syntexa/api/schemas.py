@@ -647,3 +647,67 @@ class ExternalCredentialRead(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
+
+# --- Presets (Phase 9) ---------------------------------------------------
+
+PRESET_KINDS: tuple[str, ...] = ("agent", "provider", "swarm_template")
+
+
+class AgentPresetRead(BaseModel):
+    """Catalog entry for a built-in Agent preset."""
+
+    name: str
+    system_prompt: str
+    default_model: str | None = None
+    description: str
+
+
+class ProviderPresetRead(BaseModel):
+    """Catalog entry for a built-in LLMProvider starter template."""
+
+    name: str
+    provider_type: str
+    default_model: str
+    base_url: str | None = None
+    description: str
+
+
+class SwarmTemplateRead(BaseModel):
+    """Catalog entry for a built-in Swarm blueprint."""
+
+    name: str
+    description: str
+    agent_names: list[str]
+    orchestrator_strategy: str
+
+
+class PresetApplyRequest(BaseModel):
+    """Seed a preset into the DB.
+
+    ``overrides`` carries runtime values the catalog entry can't supply
+    (e.g. ``provider_id`` for an agent, ``api_key`` for a provider,
+    ``repository_id`` + ``provider_id`` for a swarm template). Unknown
+    keys are forwarded to the builder, which validates them.
+    """
+
+    kind: str = Field(..., min_length=1, max_length=32)
+    preset_name: str = Field(..., min_length=1, max_length=64)
+    overrides: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("kind")
+    @classmethod
+    def _kind_valid(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in PRESET_KINDS:
+            raise ValueError(f"kind must be one of {PRESET_KINDS}")
+        return v
+
+
+class PresetApplyResponse(BaseModel):
+    """Discriminated response — exactly one of the payload fields is set."""
+
+    kind: str
+    agent: AgentRead | None = None
+    provider: LLMProviderRead | None = None
+    swarm: SwarmRead | None = None

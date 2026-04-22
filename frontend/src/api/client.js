@@ -99,6 +99,12 @@ export const api = {
     run: (id, payload = {}) =>
       request(`/swarms/${id}/run`, { method: 'POST', body: payload }),
   },
+  presets: {
+    agents: () => request('/presets/agents'),
+    providers: () => request('/presets/providers'),
+    swarmTemplates: () => request('/presets/swarm-templates'),
+    apply: (payload) => request('/presets/apply', { method: 'POST', body: payload }),
+  },
 };
 
 // Supported values, mirrored from backend schemas:
