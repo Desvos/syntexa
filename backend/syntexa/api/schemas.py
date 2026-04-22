@@ -419,6 +419,7 @@ class LLMProviderList(BaseModel):
 
 # --- Agent ---------------------------------------------------------------
 
+
 class AgentCreate(BaseModel):
     """Create a new Agent.
 
@@ -466,6 +467,113 @@ class AgentRead(BaseModel):
 
 class AgentList(BaseModel):
     agents: list[AgentRead]
+
+
+# --- Repository ----------------------------------------------------------
+
+
+class RepositoryCreate(BaseModel):
+    """Register a new code repository.
+
+    The `path` must be absolute but is NOT validated to exist on disk at
+    schema-layer — rows can be pre-configured before the path is materialized.
+    The /health endpoint surfaces disk reality.
+    """
+
+    name: str = Field(..., min_length=1, max_length=64)
+    path: str = Field(..., min_length=1, max_length=1024)
+    remote_url: str | None = Field(default=None, max_length=512)
+    default_branch: str = Field(default="main", min_length=1, max_length=128)
+    clickup_list_id: str | None = Field(default=None, max_length=64)
+    is_active: bool = Field(default=True)
+
+    @field_validator("name")
+    @classmethod
+    def _name_valid(cls, v: str) -> str:
+        return _provider_name_is_slug(v)
+
+    @field_validator("path")
+    @classmethod
+    def _path_non_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("path cannot be empty")
+        return v
+
+    @field_validator("default_branch")
+    @classmethod
+    def _default_branch_stripped(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("default_branch cannot be empty")
+        return v
+
+
+class RepositoryUpdate(BaseModel):
+    """Partial update.
+
+    `name` is intentionally NOT updatable: other entities (e.g. Swarm in
+    Phase 4) will reference repos by name, and renaming would silently
+    break them — same justification as agent_roles / llm_providers. Users
+    delete+recreate instead.
+    """
+
+    path: str | None = Field(default=None, min_length=1, max_length=1024)
+    remote_url: str | None = Field(default=None, max_length=512)
+    default_branch: str | None = Field(default=None, min_length=1, max_length=128)
+    clickup_list_id: str | None = Field(default=None, max_length=64)
+    is_active: bool | None = None
+
+    @field_validator("path")
+    @classmethod
+    def _path_stripped(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            raise ValueError("path cannot be empty")
+        return v
+
+    @field_validator("default_branch")
+    @classmethod
+    def _default_branch_stripped(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            raise ValueError("default_branch cannot be empty")
+        return v
+
+
+class RepositoryRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    path: str
+    remote_url: str | None
+    default_branch: str
+    clickup_list_id: str | None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class RepositoryList(BaseModel):
+    repositories: list[RepositoryRead]
+
+
+class RepositoryHealth(BaseModel):
+    """Disk-reality check for a repository row.
+
+    Read-only: no side effects. `default_branch_exists` is False if the
+    path is not a git repo, if the branch is missing, or if the subprocess
+    fails for any reason (including timeout).
+    """
+
+    is_git_repo: bool
+    path_exists: bool
+    default_branch_exists: bool
 
 
 # --- ExternalCredentials --------------------------------------------------

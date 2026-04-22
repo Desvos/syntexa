@@ -206,3 +206,34 @@ class ExternalCredential(Base):
 
     def set_credentials(self, value: dict[str, Any]) -> None:
         self._credentials = json.dumps(value)
+
+
+class Repository(Base):
+    """A code repository the platform can run swarms against.
+
+    Multi-repo first class: each row is a (name, path, remote_url, default_branch,
+    clickup_list_id) bundle. Worktrees created by the daemon will scope to one
+    specific repo, enabling concurrent swarms on different codebases. The
+    `path` is an absolute location on disk — the row can exist before the path
+    is materialized; the /health endpoint surfaces disk reality.
+    """
+
+    __tablename__ = "repositories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    path: Mapped[str] = mapped_column(String(1024), unique=True, nullable=False)
+    remote_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    default_branch: Mapped[str] = mapped_column(
+        String(128), nullable=False, default="main"
+    )
+    clickup_list_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utcnow, onupdate=_utcnow
+    )
