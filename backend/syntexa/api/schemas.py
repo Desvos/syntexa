@@ -417,6 +417,57 @@ class LLMProviderList(BaseModel):
     providers: list[LLMProviderRead]
 
 
+# --- Agent ---------------------------------------------------------------
+
+class AgentCreate(BaseModel):
+    """Create a new Agent.
+
+    An Agent bundles a name, a system prompt, a provider (FK), and an
+    optional model override. When `model` is NULL the agent inherits the
+    provider's `default_model` at config-build time.
+    """
+
+    name: str = Field(..., min_length=1, max_length=64)
+    system_prompt: str = Field(..., min_length=1)
+    provider_id: int = Field(..., ge=1)
+    model: str | None = Field(default=None, max_length=128)
+    is_active: bool = Field(default=True)
+
+    @field_validator("name")
+    @classmethod
+    def _name_valid(cls, v: str) -> str:
+        return _provider_name_is_slug(v)
+
+
+class AgentUpdate(BaseModel):
+    """Partial update. `name` is intentionally NOT updatable — Swarms and
+    other future wiring reference agents by name, and renaming would
+    silently break those references. Users delete+recreate instead.
+    """
+
+    system_prompt: str | None = Field(default=None, min_length=1)
+    provider_id: int | None = Field(default=None, ge=1)
+    model: str | None = Field(default=None, max_length=128)
+    is_active: bool | None = None
+
+
+class AgentRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    system_prompt: str
+    provider_id: int
+    model: str | None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class AgentList(BaseModel):
+    agents: list[AgentRead]
+
+
 # --- ExternalCredentials --------------------------------------------------
 
 class ExternalCredentialCreate(BaseModel):

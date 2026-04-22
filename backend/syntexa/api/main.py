@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI
 
 from syntexa.api.middleware import require_auth
+from syntexa.api.routes import agents as agents_routes
 from syntexa.api.routes import auth as auth_routes
 from syntexa.api.routes import compositions as compositions_routes
 from syntexa.api.routes import credentials as credentials_routes
@@ -85,6 +86,11 @@ def create_app() -> FastAPI:
     )
     app.include_router(
         llm_providers_routes.router,
+        prefix=API_PREFIX,
+        dependencies=[Depends(require_auth)],
+    )
+    app.include_router(
+        agents_routes.router,
         prefix=API_PREFIX,
         dependencies=[Depends(require_auth)],
     )

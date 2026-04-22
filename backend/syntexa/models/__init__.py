@@ -1,6 +1,7 @@
 """ORM models and database access."""
 from syntexa.models.database import Base, create_all, get_engine, init_engine, session_scope
 from syntexa.models.entities import (
+    Agent,
     AgentRole,
     ExternalCredential,
     LLMProvider,
@@ -11,6 +12,7 @@ from syntexa.models.entities import (
 )
 
 __all__ = [
+    "Agent",
     "AgentRole",
     "Base",
     "ExternalCredential",

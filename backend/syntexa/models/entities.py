@@ -5,7 +5,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, Index, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from syntexa.models.database import Base
@@ -140,6 +140,39 @@ class LLMProvider(Base):
     base_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     api_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     default_model: Mapped[str] = mapped_column(String(128), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utcnow, onupdate=_utcnow
+    )
+
+
+class Agent(Base):
+    """A user-defined agent bound to an LLMProvider.
+
+    Replaces the legacy hardcoded AgentRole roster: users freely create
+    agents by giving them a name, a system prompt, a provider, and
+    optionally a model override. When `model` is NULL, the agent inherits
+    `provider.default_model` at config-build time.
+
+    The legacy `AgentRole` table stays in place for now — Phase 8 handles
+    the cleanup + migration.
+    """
+
+    __tablename__ = "agents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    system_prompt: Mapped[str] = mapped_column(Text, nullable=False)
+    provider_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("llm_providers.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+    model: Mapped[str | None] = mapped_column(String(128), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_utcnow

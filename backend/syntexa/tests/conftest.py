@@ -41,6 +41,7 @@ def db_session(test_db_path: str) -> Generator[Session, None, None]:
     """Create a fresh database session for each test."""
     # Import models first to register them with Base.metadata
     from syntexa.models import (  # noqa: F401 - registers all models
+        Agent,
         AgentRole,
         ExternalCredential,
         LLMProvider,
@@ -68,6 +69,7 @@ def client(test_db_path: str) -> Generator[TestClient, None, None]:
     """Create a FastAPI test client with initialized database."""
     # Import models first to register them with Base.metadata
     from syntexa.models import (  # noqa: F401 - registers all models
+        Agent,
         AgentRole,
         ExternalCredential,
         LLMProvider,
