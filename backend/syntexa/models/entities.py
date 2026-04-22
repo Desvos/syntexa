@@ -111,3 +111,29 @@ class SystemSetting(Base):
 
     def set_value(self, value: Any) -> None:
         self.value = json.dumps(value)
+
+
+class ExternalCredential(Base):
+    """Stores external service credentials (ClickUp, GitHub, etc.) in the database.
+
+    Credentials are encrypted at rest and scoped by service_type.
+    """
+    __tablename__ = "external_credentials"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    service_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    # JSON-encoded dict with service-specific fields (api_key, list_id, etc.)
+    _credentials: Mapped[str] = mapped_column("credentials", Text, nullable=False, default="{}")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utcnow, onupdate=_utcnow
+    )
+
+    def get_credentials(self) -> dict[str, Any]:
+        return json.loads(self._credentials)
+
+    def set_credentials(self, value: dict[str, Any]) -> None:
+        self._credentials = json.dumps(value)

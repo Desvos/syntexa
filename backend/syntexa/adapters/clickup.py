@@ -7,6 +7,7 @@ httpx internals.
 from __future__ import annotations
 
 import logging
+from typing import override
 
 import httpx
 
@@ -51,6 +52,10 @@ class ClickUpAdapter(ProjectManagementAdapter):
             headers={"Authorization": api_key, "Content-Type": "application/json"},
             timeout=timeout,
         )
+
+    @override
+    def __hash__(self) -> int:
+        return hash((self._list_id, id(self._client)))
 
     def close(self) -> None:
         self._client.close()

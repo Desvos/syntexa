@@ -309,3 +309,41 @@ class SwarmLogResponse(BaseModel):
     pr_url: str | None
     started_at: datetime
     completed_at: datetime | None
+
+
+# --- ExternalCredentials --------------------------------------------------
+
+class ExternalCredentialCreate(BaseModel):
+    """Create a new external credential."""
+
+    service_type: str = Field(..., min_length=1, max_length=32, description="Service type (clickup, github, etc.)")
+    credentials: dict[str, Any] = Field(..., description="Service-specific credential fields")
+    is_active: bool = Field(default=True)
+
+    @field_validator("service_type")
+    @classmethod
+    def _service_type_is_valid(cls, v: str) -> str:
+        v = v.strip().lower()
+        allowed = {"clickup", "github", "jira", "linear", "gitlab", "custom"}
+        if v not in allowed:
+            raise ValueError(f"service_type must be one of: {allowed}")
+        return v
+
+
+class ExternalCredentialUpdate(BaseModel):
+    """Update an existing external credential."""
+
+    credentials: dict[str, Any] | None = None
+    is_active: bool | None = None
+
+
+class ExternalCredentialRead(BaseModel):
+    """External credential for API responses (excludes sensitive data)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    service_type: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime

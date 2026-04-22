@@ -66,12 +66,10 @@ class Settings(BaseSettings):
     def _resolve_repo_path(cls, v: Path) -> Path:
         return v.expanduser().resolve()
 
-    def require_clickup(self) -> None:
-        if not (self.clickup_api_key and self.clickup_list_id):
-            raise RuntimeError(
-                "ClickUp not configured: set SYNTEXA_CLICKUP_API_KEY and "
-                "SYNTEXA_CLICKUP_LIST_ID."
-            )
+    def get_clickup_config(self) -> tuple[str | None, str | None]:
+        """Return (api_key, list_id) if configured via env vars, else (None, None).
+        For database-stored credentials, use ExternalCredential model instead."""
+        return (self.clickup_api_key, self.clickup_list_id)
 
     def require_github(self) -> None:
         if not (self.github_token and self.github_owner and self.github_repo):

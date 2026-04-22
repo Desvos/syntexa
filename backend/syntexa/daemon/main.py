@@ -10,7 +10,13 @@ import signal
 import sys
 from datetime import datetime, timezone
 
-from syntexa.adapters.base import ProjectManagementAdapter, RepositoryAdapter, TaskRef
+from syntexa.adapters.base import (
+    LocalRepositoryAdapter,
+    NoOpProjectManagementAdapter,
+    ProjectManagementAdapter,
+    RepositoryAdapter,
+    TaskRef,
+)
 from syntexa.adapters.clickup import ClickUpAdapter
 from syntexa.adapters.github import GitHubAdapter
 from syntexa.config import Settings, get_settings
@@ -22,7 +28,7 @@ from syntexa.daemon.poller import Poller
 from syntexa.daemon.roles import DEFAULT_ROLES, RoleConfig
 from syntexa.daemon.swarm import SwarmContext, SwarmEngine, SwarmResult
 from syntexa.daemon.workspace import Workspace, branch_name_for
-from syntexa.models import SwarmInstance, init_engine, session_scope
+from syntexa.models import ExternalCredential, SwarmInstance, init_engine, session_scope
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +157,68 @@ def _record_swarm_end(ctx: SwarmContext, result: SwarmResult, pr_url: str | None
         logger.exception("Could not persist swarm end for %s", ctx.task_id)
 
 
+def _get_clickup_credentials(settings: Settings) -> tuple[str | None, str | None] | None:
+    """Resolve ClickUp credentials from env vars or database.
+
+    Returns None if ClickUp integration is not configured.
+    Returns tuple(api_key, list_id) if configured.
+    """
+    # Priority 1: Environment variables
+    env_api_key, env_list_id = settings.get_clickup_config()
+    if env_api_key and env_list_id:
+        return (env_api_key, env_list_id)
+
+    # Priority 2: Database-stored credentials
+    try:
+        with session_scope() as session:
+            cred = (
+                session.query(ExternalCredential)
+                .filter_by(service_type="clickup", is_active=True)
+                .first()
+            )
+            if cred:
+                data = cred.get_credentials()
+                api_key = data.get("api_key")
+                list_id = data.get("list_id")
+                if api_key and list_id:
+                    return (api_key, list_id)
+    except Exception:
+        logger.debug("Could not query ClickUp credentials from database", exc_info=True)
+
+    return None
+
+
+def _get_github_credentials(settings: Settings) -> tuple[str | None, str | None, str | None] | None:
+    """Resolve GitHub credentials from env vars or database.
+
+    Returns None if GitHub integration is not configured.
+    Returns tuple(token, owner, repo) if configured.
+    """
+    # Priority 1: Environment variables
+    if settings.github_token and settings.github_owner and settings.github_repo:
+        return (settings.github_token, settings.github_owner, settings.github_repo)
+
+    # Priority 2: Database-stored credentials
+    try:
+        with session_scope() as session:
+            cred = (
+                session.query(ExternalCredential)
+                .filter_by(service_type="github", is_active=True)
+                .first()
+            )
+            if cred:
+                data = cred.get_credentials()
+                token = data.get("token")
+                owner = data.get("owner")
+                repo = data.get("repo")
+                if token and owner and repo:
+                    return (token, owner, repo)
+    except Exception:
+        logger.debug("Could not query GitHub credentials from database", exc_info=True)
+
+    return None
+
+
 def run() -> None:
     """Console-script entry point."""
     logging.basicConfig(
@@ -158,21 +226,36 @@ def run() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     settings = get_settings()
-    settings.require_clickup()
-    settings.require_github()
 
     init_engine(settings.database_url)
 
-    pm = ClickUpAdapter(
-        api_key=settings.clickup_api_key,  # type: ignore[arg-type] — require_clickup guarantees non-None
-        list_id=settings.clickup_list_id,  # type: ignore[arg-type]
-    )
-    repo = GitHubAdapter(
-        token=settings.github_token,  # type: ignore[arg-type]
-        owner=settings.github_owner,  # type: ignore[arg-type]
-        repo=settings.github_repo,  # type: ignore[arg-type]
-        repo_path=settings.repo_path,
-    )
+    # Resolve ClickUp credentials (optional)
+    clickup_creds = _get_clickup_credentials(settings)
+    pm: ProjectManagementAdapter
+    if clickup_creds:
+        api_key, list_id = clickup_creds
+        pm = ClickUpAdapter(api_key=api_key, list_id=list_id)
+        logger.info("ClickUp integration configured (list_id=%s)", list_id)
+    else:
+        pm = NoOpProjectManagementAdapter()
+        logger.warning(
+            "ClickUp not configured. Using no-op adapter. Set env vars or add credentials via ExternalCredential."
+        )
+
+    # Resolve GitHub credentials (optional)
+    github_creds = _get_github_credentials(settings)
+    repo: RepositoryAdapter
+    if github_creds:
+        token, owner, repo_name = github_creds
+        repo = GitHubAdapter(
+            token=token, owner=owner, repo=repo_name, repo_path=settings.repo_path
+        )
+        logger.info("GitHub integration configured (repo=%s/%s)", owner, repo_name)
+    else:
+        repo = LocalRepositoryAdapter(repo_path=settings.repo_path)
+        logger.warning(
+            "GitHub not configured. Using local git adapter. Set env vars or add credentials via ExternalCredential."
+        )
 
     from syntexa.daemon.swarm import AG2SwarmEngine  # local import; AG2 is optional
 

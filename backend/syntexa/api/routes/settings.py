@@ -21,6 +21,7 @@ from syntexa.api.schemas import (
     SystemSettingsRead,
     SystemSettingUpdate,
 )
+from syntexa.api.routes.credentials import _get_clickup_creds, _get_github_creds
 from syntexa.config import get_settings as get_env_settings
 from syntexa.daemon.settings_watcher import trigger_daemon_reload
 from syntexa.models import SystemSetting
@@ -145,19 +146,18 @@ def get_settings_status() -> SettingsStatusResponse:
     """Get connection health status for external services.
 
     Returns current connectivity to ClickUp and GitHub.
+    Supports both environment variables and database credentials.
     """
     env = get_env_settings()
     connections: list[ConnectionStatus] = []
 
-    # Check ClickUp
-    clickup_configured = bool(env.clickup_api_key and env.clickup_list_id)
-    if clickup_configured:
-        # In a real implementation, we'd do a ping check here
-        # For now, report based on configuration presence
+    # Check ClickUp (env vars or database)
+    clickup_key, clickup_list = _get_clickup_creds(env)
+    if clickup_key and clickup_list:
         connections.append(
             ConnectionStatus(
                 service="clickup",
-                status="connected",
+                status="configured",
                 message="ClickUp API key and list ID configured",
             )
         )
@@ -166,33 +166,33 @@ def get_settings_status() -> SettingsStatusResponse:
             ConnectionStatus(
                 service="clickup",
                 status="unconfigured",
-                message="Missing SYNTEXA_CLICKUP_API_KEY or SYNTEXA_CLICKUP_LIST_ID",
+                message="Missing ClickUp credentials (env vars or database)",
             )
         )
 
-    # Check GitHub
-    github_configured = bool(env.github_token and env.github_owner and env.github_repo)
-    if github_configured:
+    # Check GitHub (env vars or database)
+    github_token, github_owner, github_repo = _get_github_creds(env)
+    if github_token and github_owner and github_repo:
         connections.append(
             ConnectionStatus(
                 service="github",
-                status="connected",
+                status="configured",
                 message="GitHub token, owner and repo configured",
             )
         )
     else:
         missing = []
-        if not env.github_token:
-            missing.append("SYNTEXA_GITHUB_TOKEN")
-        if not env.github_owner:
-            missing.append("SYNTEXA_GITHUB_OWNER")
-        if not env.github_repo:
-            missing.append("SYNTEXA_GITHUB_REPO")
+        if not github_token:
+            missing.append("token")
+        if not github_owner:
+            missing.append("owner")
+        if not github_repo:
+            missing.append("repo")
         connections.append(
             ConnectionStatus(
                 service="github",
                 status="unconfigured",
-                message=f"Missing environment variables: {', '.join(missing)}",
+                message=f"Missing GitHub credentials (fields: {', '.join(missing)})",
             )
         )
 
