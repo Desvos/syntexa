@@ -13,6 +13,7 @@ from syntexa.api.middleware import require_auth
 from syntexa.api.routes import auth as auth_routes
 from syntexa.api.routes import compositions as compositions_routes
 from syntexa.api.routes import credentials as credentials_routes
+from syntexa.api.routes import llm_providers as llm_providers_routes
 from syntexa.api.routes import roles as roles_routes
 from syntexa.api.routes import settings as settings_routes
 from syntexa.api.routes import swarms as swarms_routes
@@ -79,6 +80,11 @@ def create_app() -> FastAPI:
     )
     app.include_router(
         credentials_routes.router,
+        prefix=API_PREFIX,
+        dependencies=[Depends(require_auth)],
+    )
+    app.include_router(
+        llm_providers_routes.router,
         prefix=API_PREFIX,
         dependencies=[Depends(require_auth)],
     )

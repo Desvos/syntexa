@@ -27,6 +27,7 @@ dependencies = [
     "ag2>=0.11,<0.12",
     # Authentication & Security
     "bcrypt>=4.0",
+    "cryptography>=42.0",
     "python-dotenv>=1.0",
     # HTTP Clients
     "httpx>=0.25",

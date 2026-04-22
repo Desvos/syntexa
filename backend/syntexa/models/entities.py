@@ -123,6 +123,32 @@ class SystemSetting(Base):
         self.value = json.dumps(value)
 
 
+class LLMProvider(Base):
+    """An LLM endpoint + credential the user has registered.
+
+    Supports native APIs (anthropic, openai) and OpenAI-compatible endpoints
+    (openrouter, ollama, generic). The API key is encrypted at rest via
+    `syntexa.core.crypto` — the column stores a Fernet ciphertext, never
+    plaintext. Nullable for Ollama-style local endpoints that don't auth.
+    """
+
+    __tablename__ = "llm_providers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    provider_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    base_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    api_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    default_model: Mapped[str] = mapped_column(String(128), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utcnow, onupdate=_utcnow
+    )
+
+
 class ExternalCredential(Base):
     """Stores external service credentials (ClickUp, GitHub, etc.) in the database.
 

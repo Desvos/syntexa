@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 # --- User ----------------------------------------------------------------
@@ -323,6 +323,98 @@ class SwarmLogResponse(BaseModel):
     pr_url: str | None
     started_at: datetime
     completed_at: datetime | None
+
+
+# --- LLMProvider ---------------------------------------------------------
+
+# Provider types the backend knows how to wire into AG2. Keep in sync with
+# syntexa.llm.provider_config.build_llm_config.
+LLM_PROVIDER_TYPES: tuple[str, ...] = (
+    "anthropic",
+    "openai",
+    "openrouter",
+    "ollama",
+    "openai_compatible",
+)
+
+# Provider types that don't require an api_key (local runtimes). Everything
+# else must carry a key.
+_NO_KEY_REQUIRED: set[str] = {"ollama"}
+
+
+def _provider_name_is_slug(v: str) -> str:
+    v = v.strip()
+    if not v:
+        raise ValueError("name cannot be empty")
+    if not all(c.isalnum() or c in ("-", "_") for c in v):
+        raise ValueError("name must be alphanumeric with - or _")
+    return v.lower()
+
+
+class LLMProviderCreate(BaseModel):
+    """Register a new LLM provider.
+
+    `api_key` is accepted here but never echoed back — responses expose only
+    a masked preview. For providers that don't need auth (e.g. local Ollama),
+    pass `null` or omit.
+    """
+
+    name: str = Field(..., min_length=1, max_length=64)
+    provider_type: str = Field(..., min_length=1, max_length=32)
+    base_url: str | None = Field(default=None, max_length=512)
+    api_key: str | None = Field(default=None, max_length=2048)
+    default_model: str = Field(..., min_length=1, max_length=128)
+    is_active: bool = Field(default=True)
+
+    @field_validator("name")
+    @classmethod
+    def _name_valid(cls, v: str) -> str:
+        return _provider_name_is_slug(v)
+
+    @field_validator("provider_type")
+    @classmethod
+    def _provider_type_known(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in LLM_PROVIDER_TYPES:
+            raise ValueError(f"provider_type must be one of {LLM_PROVIDER_TYPES}")
+        return v
+
+    @model_validator(mode="after")
+    def _key_required_when_applicable(self) -> "LLMProviderCreate":
+        if self.provider_type not in _NO_KEY_REQUIRED and not self.api_key:
+            raise ValueError(
+                f"api_key is required for provider_type '{self.provider_type}'"
+            )
+        return self
+
+
+class LLMProviderUpdate(BaseModel):
+    """Partial update. Omit `api_key` to keep the stored one."""
+
+    base_url: str | None = Field(default=None, max_length=512)
+    api_key: str | None = Field(default=None, max_length=2048)
+    default_model: str | None = Field(default=None, min_length=1, max_length=128)
+    is_active: bool | None = None
+
+
+class LLMProviderRead(BaseModel):
+    """Response model — exposes a masked key preview only."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    provider_type: str
+    base_url: str | None
+    api_key_preview: str | None  # "sk-ant-…abcd" or None
+    default_model: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class LLMProviderList(BaseModel):
+    providers: list[LLMProviderRead]
 
 
 # --- ExternalCredentials --------------------------------------------------

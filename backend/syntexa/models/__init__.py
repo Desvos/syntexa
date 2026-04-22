@@ -3,6 +3,7 @@ from syntexa.models.database import Base, create_all, get_engine, init_engine, s
 from syntexa.models.entities import (
     AgentRole,
     ExternalCredential,
+    LLMProvider,
     SwarmComposition,
     SwarmInstance,
     SystemSetting,
@@ -13,6 +14,7 @@ __all__ = [
     "AgentRole",
     "Base",
     "ExternalCredential",
+    "LLMProvider",
     "SwarmComposition",
     "SwarmInstance",
     "SystemSetting",
