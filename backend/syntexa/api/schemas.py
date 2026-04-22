@@ -576,6 +576,180 @@ class RepositoryHealth(BaseModel):
     default_branch_exists: bool
 
 
+# --- Swarm ---------------------------------------------------------------
+
+# Re-use the provider slug validator under a generic alias so new schemas
+# don't have to reach into the LLMProvider block by name.
+_is_slug = _provider_name_is_slug
+
+
+ORCHESTRATOR_STRATEGIES: tuple[str, ...] = ("auto", "parallel", "sequential")
+SWARM_STATUSES: tuple[str, ...] = ("idle", "running", "completed", "failed")
+
+
+class SwarmCreate(BaseModel):
+    """Create a first-class Swarm bound to a repository.
+
+    `agent_ids` is a required non-empty ordered list. `manual_agent_order`
+    is optional; when provided it must be a subset of `agent_ids` AND
+    the orchestrator strategy must be "sequential".
+    """
+
+    name: str = Field(..., min_length=1, max_length=64)
+    repository_id: int = Field(..., ge=1)
+    task_description: str | None = Field(default=None)
+    orchestrator_strategy: str = Field(default="auto", min_length=1, max_length=16)
+    manual_agent_order: list[int] | None = None
+    max_rounds: int = Field(default=60, ge=1, le=500)
+    status: str = Field(default="idle", min_length=1, max_length=16)
+    is_active: bool = Field(default=True)
+    agent_ids: list[int] = Field(..., min_length=1)
+
+    @field_validator("name")
+    @classmethod
+    def _name_valid(cls, v: str) -> str:
+        return _is_slug(v)
+
+    @field_validator("orchestrator_strategy")
+    @classmethod
+    def _strategy_valid(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in ORCHESTRATOR_STRATEGIES:
+            raise ValueError(
+                f"orchestrator_strategy must be one of {ORCHESTRATOR_STRATEGIES}"
+            )
+        return v
+
+    @field_validator("status")
+    @classmethod
+    def _status_valid(cls, v: str) -> str:
+        v = v.strip().lower()
+        if v not in SWARM_STATUSES:
+            raise ValueError(f"status must be one of {SWARM_STATUSES}")
+        return v
+
+    @field_validator("agent_ids")
+    @classmethod
+    def _agent_ids_unique(cls, v: list[int]) -> list[int]:
+        if len(v) != len(set(v)):
+            raise ValueError("agent_ids must be unique")
+        return v
+
+    @model_validator(mode="after")
+    def _manual_order_consistency(self) -> "SwarmCreate":
+        if self.manual_agent_order is None:
+            return self
+        if self.orchestrator_strategy != "sequential":
+            raise ValueError(
+                "manual_agent_order is only valid when "
+                "orchestrator_strategy='sequential'"
+            )
+        if len(self.manual_agent_order) != len(set(self.manual_agent_order)):
+            raise ValueError("manual_agent_order must contain unique agent_ids")
+        extras = set(self.manual_agent_order) - set(self.agent_ids)
+        if extras:
+            raise ValueError(
+                f"manual_agent_order contains agent_ids not in agent_ids: {sorted(extras)}"
+            )
+        return self
+
+
+class SwarmUpdate(BaseModel):
+    """Partial update. `name` is intentionally NOT updatable — other rows
+    (future orchestration state, logs) may reference swarms by name, so
+    renaming would silently break them. Users delete+recreate instead.
+    """
+
+    repository_id: int | None = Field(default=None, ge=1)
+    task_description: str | None = None
+    orchestrator_strategy: str | None = Field(default=None, min_length=1, max_length=16)
+    manual_agent_order: list[int] | None = None
+    max_rounds: int | None = Field(default=None, ge=1, le=500)
+    status: str | None = Field(default=None, min_length=1, max_length=16)
+    is_active: bool | None = None
+    agent_ids: list[int] | None = Field(default=None, min_length=1)
+
+    @field_validator("orchestrator_strategy")
+    @classmethod
+    def _strategy_valid(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip().lower()
+        if v not in ORCHESTRATOR_STRATEGIES:
+            raise ValueError(
+                f"orchestrator_strategy must be one of {ORCHESTRATOR_STRATEGIES}"
+            )
+        return v
+
+    @field_validator("status")
+    @classmethod
+    def _status_valid(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip().lower()
+        if v not in SWARM_STATUSES:
+            raise ValueError(f"status must be one of {SWARM_STATUSES}")
+        return v
+
+    @field_validator("agent_ids")
+    @classmethod
+    def _agent_ids_unique(cls, v: list[int] | None) -> list[int] | None:
+        if v is None:
+            return None
+        if len(v) != len(set(v)):
+            raise ValueError("agent_ids must be unique")
+        return v
+
+    @model_validator(mode="after")
+    def _manual_order_consistency(self) -> "SwarmUpdate":
+        # If both strategy and manual_agent_order are being set in the same
+        # payload, cross-check them; if only one side is provided, the route
+        # layer does the full post-merge validation against DB state.
+        if (
+            self.manual_agent_order is not None
+            and self.orchestrator_strategy is not None
+            and self.orchestrator_strategy != "sequential"
+        ):
+            raise ValueError(
+                "manual_agent_order is only valid when "
+                "orchestrator_strategy='sequential'"
+            )
+        if self.manual_agent_order is not None:
+            if len(self.manual_agent_order) != len(set(self.manual_agent_order)):
+                raise ValueError(
+                    "manual_agent_order must contain unique agent_ids"
+                )
+            if self.agent_ids is not None:
+                extras = set(self.manual_agent_order) - set(self.agent_ids)
+                if extras:
+                    raise ValueError(
+                        "manual_agent_order contains agent_ids not in agent_ids: "
+                        f"{sorted(extras)}"
+                    )
+        return self
+
+
+class SwarmRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    repository_id: int
+    task_description: str | None
+    orchestrator_strategy: str
+    manual_agent_order: list[int] | None
+    max_rounds: int
+    status: str
+    is_active: bool
+    agents: list[AgentRead]
+    created_at: datetime
+    updated_at: datetime
+
+
+class SwarmList(BaseModel):
+    swarms: list[SwarmRead]
+
+
 # --- ExternalCredentials --------------------------------------------------
 
 class ExternalCredentialCreate(BaseModel):
