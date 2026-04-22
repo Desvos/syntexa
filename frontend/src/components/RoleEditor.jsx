@@ -8,16 +8,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
-  FormHelperText,
-  InputLabel,
-  MenuItem,
-  OutlinedInput,
-  Select,
   TextField,
   Typography,
+  IconButton,
+  Autocomplete,
 } from '@mui/material';
-import HandoffTargets from './HandoffTargets.jsx';
+import AddIcon from '@mui/icons-material/Add';
 
 const EMPTY = { name: '', system_prompt: '', handoff_targets: [] };
 
@@ -27,7 +23,7 @@ const EMPTY = { name: '', system_prompt: '', handoff_targets: [] };
  * Features:
  * - TextField for name (read-only in edit mode)
  * - Multiline TextField for system prompt with character counter
- * - HandoffTargets selector for multi-select
+ * - Free-form handoff targets input (not tied to existing roles)
  * - Error display with Alert
  * - Loading state
  */
@@ -37,15 +33,18 @@ export default function RoleEditor({ role, existingRoles, onSave, onCancel, open
   const [form, setForm] = useState(role ? roleToForm(role) : EMPTY);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [newTarget, setNewTarget] = useState('');
 
   useEffect(() => {
     setForm(role ? roleToForm(role) : EMPTY);
     setError(null);
+    setNewTarget('');
   }, [role]);
 
-  const availableTargets = existingRoles
+  // Suggestions from existing roles, but user can add any target they want
+  const targetSuggestions = existingRoles
     .map((r) => r.name)
-    .filter((n) => n !== form.name);
+    .filter((n) => n !== form.name && !form.handoff_targets.includes(n));
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -131,21 +130,101 @@ export default function RoleEditor({ role, existingRoles, onSave, onCancel, open
             }
           />
 
-          {/* Handoff Targets */}
+          {/* Handoff Targets - Free-form input */}
           <Box sx={{ mt: 3 }}>
             <Typography variant="subtitle2" gutterBottom>
               Handoff Targets
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Select which roles this agent can hand off to.
+              Add any agent names this role can hand off to. Not limited to existing roles.
             </Typography>
 
-            <HandoffTargets
-              value={form.handoff_targets}
-              available={availableTargets}
-              onChange={(v) => setForm({ ...form, handoff_targets: v })}
-              disabled={saving}
-            />
+            {/* Selected targets as chips */}
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+              {form.handoff_targets.length === 0 && (
+                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                  No handoff targets defined yet.
+                </Typography>
+              )}
+              {form.handoff_targets.map((target) => (
+                <Chip
+                  key={target}
+                  label={target}
+                  color="primary"
+                  size="small"
+                  onDelete={saving ? undefined : () => {
+                    setForm({
+                      ...form,
+                      handoff_targets: form.handoff_targets.filter((t) => t !== target)
+                    });
+                  }}
+                />
+              ))}
+            </Box>
+
+            {/* Add new target - any string is valid */}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+              <Autocomplete
+                freeSolo
+                fullWidth
+                options={targetSuggestions}
+                inputValue={newTarget}
+                onInputChange={(e, value) => setNewTarget(value)}
+                value={null}
+                onChange={(e, value) => {
+                  if (value && typeof value === 'string' && value.trim()) {
+                    const trimmed = value.trim();
+                    if (!form.handoff_targets.includes(trimmed)) {
+                      setForm({
+                        ...form,
+                        handoff_targets: [...form.handoff_targets, trimmed]
+                      });
+                    }
+                    setNewTarget('');
+                  }
+                }}
+                disabled={saving}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Add handoff target"
+                    placeholder="Type any agent name (e.g., 'planner', 'security-auditor')"
+                    helperText="You can add any name, even if that role doesn't exist yet"
+                    size="small"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const trimmed = newTarget.trim();
+                        if (trimmed && !form.handoff_targets.includes(trimmed)) {
+                          setForm({
+                            ...form,
+                            handoff_targets: [...form.handoff_targets, trimmed]
+                          });
+                          setNewTarget('');
+                        }
+                      }
+                    }}
+                  />
+                )}
+              />
+              <IconButton
+                onClick={() => {
+                  const trimmed = newTarget.trim();
+                  if (trimmed && !form.handoff_targets.includes(trimmed)) {
+                    setForm({
+                      ...form,
+                      handoff_targets: [...form.handoff_targets, trimmed]
+                    });
+                    setNewTarget('');
+                  }
+                }}
+                disabled={!newTarget.trim() || saving}
+                color="primary"
+                size="large"
+              >
+                <AddIcon />
+              </IconButton>
+            </Box>
           </Box>
         </DialogContent>
 

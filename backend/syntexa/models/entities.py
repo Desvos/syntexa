@@ -44,7 +44,17 @@ class AgentRole(Base):
     )
 
     def get_handoff_targets(self) -> list[str]:
-        return json.loads(self.handoff_targets or "[]")
+        raw = json.loads(self.handoff_targets or "[]")
+        if not isinstance(raw, list):
+            return []
+        # Legacy rows stored objects like {"type": "...", "name": "..."}; normalize per-element.
+        out: list[str] = []
+        for t in raw:
+            if isinstance(t, str):
+                out.append(t)
+            elif isinstance(t, dict) and t.get("name"):
+                out.append(str(t["name"]))
+        return out
 
     def set_handoff_targets(self, targets: list[str]) -> None:
         self.handoff_targets = json.dumps(list(targets))
