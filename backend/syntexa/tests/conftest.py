@@ -16,6 +16,10 @@ os.environ["SYNTEXA_ENVIRONMENT"] = "test"
 os.environ["SYNTEXA_DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["SYNTEXA_SESSION_SECRET"] = "test-secret-key-not-for-production"
 
+# Must use same file for sessions - :memory: creates a new DB per connection
+SYNTEXA_SESSIONS_TEMP = tempfile.NamedTemporaryFile(suffix="_sessions.db", delete=False)
+os.environ["SYNTEXA_SESSIONS_DB"] = SYNTEXA_SESSIONS_TEMP.name
+
 
 @pytest.fixture(scope="session")
 def test_db_path() -> Generator[str, None, None]:
@@ -158,7 +162,7 @@ def auth_headers(client: TestClient) -> dict:
         session = get_session(token)
         sys.stderr.write(f"DEBUG: session lookup: {session}\n")
 
-        return {"authorization": f"Bearer {token}"}
+        return {"Authorization": f"Bearer {token}"}
     except Exception as e:
         import sys
         sys.stderr.write(f"auth_headers error: {e}\n")

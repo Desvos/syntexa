@@ -5,6 +5,7 @@ Uses SQLite for session storage (survives server reloads).
 """
 from __future__ import annotations
 
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import TypedDict
@@ -16,7 +17,7 @@ from sqlalchemy import Column, DateTime, Integer, String, create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # SQLite session storage (persistent across reloads)
-DB_PATH = "sessions.db"
+DB_PATH = os.environ.get("SYNTEXA_SESSIONS_DB", "sessions.db")
 engine = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -105,7 +106,10 @@ def get_session(token: str | None) -> SessionData | None:
             return None
 
         now = datetime.now(timezone.utc)
-        if now > session.expires_at:
+        expires_at = session.expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+        if now > expires_at:
             # Clean up expired session
             db.delete(session)
             db.commit()
@@ -140,13 +144,18 @@ def cleanup_expired_sessions() -> int:
     db = SessionLocal()
     try:
         now = datetime.now(timezone.utc)
-        result = (
-            db.query(SessionModel)
-            .filter(SessionModel.expires_at < now)
-            .delete(synchronize_session=False)
-        )
+        # Get all sessions and filter manually to handle timezone-naive datetimes
+        sessions = db.query(SessionModel).all()
+        expired_count = 0
+        for session in sessions:
+            expires_at = session.expires_at
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            if expires_at < now:
+                db.delete(session)
+                expired_count += 1
         db.commit()
-        return result
+        return expired_count
     finally:
         db.close()
 

@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from fastapi import HTTPException, Request, status
+from fastapi import Header, HTTPException, Request, status
 from fastapi.security import HTTPBearer
 
 from syntexa.api.auth import get_session
@@ -15,7 +15,8 @@ security = HTTPBearer(auto_error=True)
 
 
 def require_auth(
-    authorization: str | None = None,
+    # Use Header to inject the authorization header
+    authorization: str | None = Header(None, alias="Authorization"),
 ) -> dict:
     """Dependency for requiring authentication on routes.
 

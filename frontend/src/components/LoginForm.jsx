@@ -99,11 +99,11 @@ export default function LoginForm({ onSuccess }) {
           />
 
           <FormControl fullWidth margin="normal" variant="outlined">
-            <InputLabel htmlFor="password" required>
+            <InputLabel htmlFor="password-input" required>
               Password
             </InputLabel>
             <OutlinedInput
-              id="password"
+              id="password-input"
               name="password"
               type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"
