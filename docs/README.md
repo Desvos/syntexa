@@ -13,3 +13,10 @@ Start here:
   Ollama, or any OpenAI-compatible endpoint.
 - [LISTENERS](./LISTENERS.md) — trigger swarms from ClickUp tasks or
   Telegram messages.
+
+Going deeper:
+
+- [ARCHITECTURE](./ARCHITECTURE.md) — full top-to-bottom map of the
+  code: layers, data model, request flow, security, extension points.
+- [CODE_MAP](./CODE_MAP.md) — file-by-file index of the backend,
+  frontend, and supporting directories.
